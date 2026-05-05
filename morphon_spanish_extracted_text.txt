@@ -1,0 +1,387 @@
+DOCUMENTO DE ESTRATEGIA DE EMPRESA
+
+MORPHON
+
+Resumen Ejecutivo y Ofertas Comerciales
+Sistemas paramétricos de diseño-a-construcción para arquitectura, ingeniería, construcción y fabricación.
+
+MORPHON desarrolla sistemas de diseño computacional que transforman problemas arquitectónicos, estructurales y ambientales complejos en modelos paramétricos inteligentes, flujos BIM, herramientas de análisis, paquetes de documentación y salidas listas para fabricación.
+
+Resumen Ejecutivo
+
+MORPHON es una empresa de diseño computacional y tecnología AEC ubicada entre arquitectura, ingeniería, construcción, computación y fabricación. No es un despacho tradicional de arquitectura, un servicio genérico de outsourcing BIM ni solamente una empresa de software.
+
+La empresa crea sistemas vivos de proyecto: modelos y flujos de trabajo que pueden cambiar, actualizarse, calcular, documentar y apoyar decisiones durante el ciclo completo del proyecto. En lugar de producir dibujos aislados, modelos 3D estáticos o análisis desconectados, MORPHON conecta geometría, datos, desempeño, documentación y lógica de fabricación.
+
+El negocio inmediato debe ser simple y enfocado: MORPHON vende sistemas computacionales de alto valor que ayudan a los clientes a diseñar más rápido, reducir incertidumbre y construir proyectos complejos con más control.
+
+Capacidades Principales
+
+Geometria compleja y racionalizacion geométrica
+
+BIM paramétrico y automatización de documentación
+
+Sistemas tensiles, ligeros, fachadas, cubiertas y envolventes
+
+Analisis ambiental y diseño informado por comportamiento estructural
+
+Logica de fabricación, planos de taller, sistemas de piezas y salidas CNC
+
+Flujos digitales a medida, configuradores web y herramientas de preventa
+
+Posicionamiento
+
+El Problema Central
+
+La mayoria de los proyectos AEC sufren por fragmentacion.
+
+El diseño ocurre en un lugar, la ingeniería en otro y el BIM en otro más.
+
+El análisis está separado, la fabricación llega tarde y la documentación avanza lentamente.
+
+Los cambios generan retrabajo manual, riesgos de coordinación e incertidumbre.
+
+MORPHON resuelve esto mediante sistemas paramétricos de proyecto donde geometría, desempeño, datos y documentación están conectados. Cuando el diseño cambia, el sistema puede actualizarse.
+
+Iteracion más rapida y opciones de diseño más claras
+
+Mayor control técnico y menos modelos desconectados
+
+Menos retrabajo manual en documentación y coordinación
+
+Complejidad más construible y deteccion temprana de problemas
+
+Comunicacion más clara con clientes, ingenieros, fabricadores y contratistas
+
+Arquitectura de Ofertas
+
+MORPHON no debe vender Grasshopper, Rhino, BIM, simulaciones o diseño paramétrico como servicios técnicos aislados. La empresa debe vender resultados de negocio: velocidad, control, construibilidad, coordinación y herramientas digitales listas para el mercado.
+
+Oferta Insignia
+
+Por qué esta oferta es fuerte
+
+Integra las capacidades de la empresa sin sonar fragmentada.
+
+Evita vender herramientas como si fueran el producto.
+
+Comunica un resultado de negocio: entregar proyectos complejos con velocidad, inteligencia y control.
+
+Ofertas Comerciales
+
+1. Sistema de Entrega BIM Parametrico
+
+Creamos modelos BIM inteligentes impulsados por lógica parametrica, permitiendo diseñar, modificar, cuantificar, documentar y coordinar proyectos con mayor velocidad y control.
+
+2. Sistema de Diseno para Geometria Compleja
+
+Ayudamos a equipos a diseñar, racionalizar y documentar geometrías arquitectónicas complejas difíciles de controlar con flujos CAD/BIM convencionales.
+
+3. Sistema de Fachada Parametrica
+
+Diseñamos sistemas de fachada donde geometría, módulos, aperturas, estructura, desempeño ambiental y documentación están conectados parametricamente.
+
+4. Sistema de Diseno + Fabricacion para Estructuras Tensiles
+
+Creamos flujos paramétricos para estructuras tensiles, canopies, membranas y sistemas ligeros desde el form-finding inicial hasta el apoyo a fabricación.
+
+5. Sistema de Diseno Estructuralmente Informado
+
+Ayudamos a equipos de diseño a generar y probar formas visualmente ambiciosas informadas por comportamiento estructural, lógica de fabricación y desempeño geométrico.
+
+6. Analisis de Diseno Climatico
+
+Integramos datos ambientales al proceso de diseño para entender como sol, radiacion, sombras, flujo de aire, agua y condiciones del sitio afectan el proyecto.
+
+7. Sistema de Diseno-a-Fabricacion
+
+Convertimos diseños complejos en sistemas organizados, documentados y listos para fabricación, manufactura, ensamble y construcción.
+
+8. Configurador de Producto AEC
+
+Creamos configuradores online interactivos que permiten a clientes personalizar, cotizar, visualizar y prevender productos arquitectónicos o de construcción.
+
+9. Automatizacion de Flujos AEC
+
+Automatizamos tareas repetitivas de diseño, modelado, documentación y coordinación mediante flujos computacionales a medida.
+
+Dirección para Landing Page
+
+Promesa central
+Ayudamos a equipos AEC a transformar proyectos complejos en modelos inteligentes que pueden diseñarse, analizarse, documentarse, cuantificarse y fabricarse con mayor control.
+
+Versión
+
+Declaración de posicionamiento
+
+Una línea
+
+MORPHON crea sistemas de diseño paramétrico y BIM para arquitectura, ingeniería y fabricación compleja.
+
+Premium
+
+MORPHON ayuda a equipos AEC a convertir intenciones de diseño complejas en modelos paramétricos inteligentes, análisis de desempeño, documentación constructiva y sistemas listos para fabricación.
+
+Landing page
+
+De geometría compleja a sistemas construibles. Diseno paramétrico, automatización BIM, análisis ambiental y documentación lista para fabricación para proyectos AEC ambiciosos.
+
+Línea de servicio
+
+Qué incluye
+
+Headline para landing page
+
+Sistemas de Diseno Parametrico
+
+Geometria compleja, fachadas parametricas, estructuras tensiles, diseño estructuralmente informado y análisis ambiental.
+
+Sistemas de diseño para arquitectura compleja.
+
+BIM + Automatizacion de Documentacion
+
+BIM paramétrico, flujos Revit/Rhino, documentación constructiva, cuantificaciones, planos de taller y modelos de fabricación.
+
+Del modelo a la documentación con menos retrabajo manual.
+
+Productos Digitales + Configuradores
+
+Configuradores online, visualización 3D de productos, herramientas comerciales, cotización automatizada, herramientas internas AEC y gemelos digitales.
+
+Herramientas interactivas para vender y gestionar productos AEC.
+
+Sistema Parametrico de Diseno-a-Construccion
+MORPHON crea sistemas paramétricos a medida que llevan ideas arquitectónicas o estructurales complejas desde el concepto hasta una realidad construible: exploracion de diseño, modelado BIM, análisis de desempeño, documentación, cuantificación y lógica de fabricación.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Modelo 3D/BIM paramétrico
+Parametros flexibles de diseño
+Actualizaciones automaticas de geometría
+Extraccion de cantidades
+Documentacion constructiva
+Integracion opcional Revit/Rhino/Grasshopper
+
+Despachos de arquitectura
+Desarrolladores
+Oficinas de ingeniería
+Constructoras
+Proyectos con elementos variables
+
+Convierte tu proyecto en un modelo inteligente que se actualiza con los cambios de diseño y apoya decisiones de documentación, coordinación y construcción.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Sistema de geometría parametrica
+Estudios de variacion
+Racionalizacion geométrica
+Logica de superficies, paneles, tiras o módulos
+Estrategia de construibilidad
+Geometria lista para fabricación si aplica
+
+Cubiertas libres
+Fachadas escultoricas
+Canopies
+Pabellones
+Cascarones
+Instalaciones
+Arquitectura orgánica o no estándar
+
+Convierte formas complejas en sistemas controlables, racionalizados y construibles.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Modelo paramétrico de fachada
+Logica de panelizacion
+Sistema de variacion modular
+Analisis solar y de sombras
+Planos de documentación
+Logica de fabricación o instalacion
+Cuantificaciones
+
+Desarrolladores
+Despachos de arquitectura
+Consultores de fachada
+Edificios comerciales
+Proyectos mixtos e institucionales
+
+Diseña fachadas más inteligentes conectando geometría, clima, costo y lógica constructiva desde el inicio.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Modelo inicial de form-finding
+Geometria parametrica de membrana o cables
+Iteraciones estructuralmente informadas
+Logica de patronaje
+Estudios de conexiones
+Planos de taller
+Geometria de fabricación
+
+Empresas de estructuras tensiles
+Fabricadores
+Despachos de arquitectura
+Cubiertas ligeras
+Proyectos deportivos, culturales, comerciales y de espacio público
+
+Pasa de una forma tensile conceptual a un sistema listo para fabricación con control paramétrico.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Modelo estructural paramétrico
+Opciones iterativas de diseño
+Analisis estructural preliminar
+Flujos Karamba/Grasshopper
+Estrategia de optimizacion
+Paquete de coordinación con ingeniería
+
+Cascarones
+Estructuras delgadas
+Canopies
+Pabellones
+Cubiertas complejas
+Arquitectura experimental
+
+Explora formas ambiciosas con inteligencia estructural desde las primeras etapas de diseño.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Analisis de radiacion solar
+Estudios de sombra
+Estudios de luz natural
+Analisis de viento o flujo de aire cuando aplique
+Logica de escurrimiento o drenaje
+Escenarios comparativos
+Reportes visuales
+
+Despachos de arquitectura
+Urbanistas
+Desarrolladores
+Proyectos de espacio público
+Edificios sensibles al clima
+
+Toma decisiones de diseño con inteligencia ambiental, no solo con intuicion.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Modelo de fabricación
+Numeración de piezas
+Logica de ensamble
+Archivos CNC según material
+Planos de taller
+Planos de instalacion
+Cuantificaciones
+
+Fabricadores
+Talleres metálicos
+Contratistas de fachada
+Empresas de estructuras tensiles
+Elementos arquitectónicos especiales
+
+Traduce diseños complejos en piezas, planos, archivos y lógica de ensamble que realmente pueden construirse.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Configurador 3D web
+Logica parametrica de producto
+Visualizacion en tiempo real
+Seleccion de opciones
+Logica de precios o cantidades
+Sistema de generación de leads
+Cotizacion automatica opcional
+
+Empresas de estructura metalica
+Fabricantes de pérgolas y canopies
+Empresas de productos de fachada
+Construccion modular
+Marcas de productos arquitectónicos
+
+Convierte tu producto de construcción en una herramienta comercial interactiva para visualizar, personalizar y solicitar cotizaciones online.
+
+Lo que recibe el cliente
+
+Ideal para
+
+Promesa comercial
+
+Flujos Grasshopper, Python, C#, Revit y Rhino
+Scripts de automatización
+Herramientas parametricas
+Flujos de datos BIM
+Automatizacion de dibujos
+Automatizacion de cantidades
+Documentacion para equipos
+
+Despachos de arquitectura
+Equipos BIM
+Oficinas de ingeniería
+Fabricadores
+Constructoras
+
+Reduce semanas de trabajo técnico repetitivo a horas o días mediante flujos computacionales personalizados.
+
+Elemento
+
+Dirección recomendada
+
+Headline hero
+
+Arquitectura compleja, hecha construible.
+
+Copy hero
+
+MORPHON crea sistemas de diseño paramétrico, BIM, análisis y fabricación para equipos de arquitectura, ingeniería y construcción.
+
+CTA
+
+Iniciar un Proyecto / Explorar Servicios
+
+Lenguaje visual
+
+Reticulas parametricas, mallas estructurales, paneles de fachada, membranas tensiles, sistemas nodales y diagramas técnicos precisos.
+
+Tono
+
+Premium, preciso, técnico, claro y orientado a resultados.
+
+Paleta
+
+Grafito, carbón, blanco calido, acero tenue, cyan controlado y un acento minimo verde acido o metalico calido.
+
+Tipografia
+
+Space Grotesk o Geist para títulos; Inter o Geist Sans para cuerpo; IBM Plex Mono o Geist Mono para etiquetas técnicas.
+
+Oferta pública más limpia
+MORPHON desarrolla sistemas paramétricos de diseño-a-construcción para equipos AEC que trabajan con geometría compleja, automatización BIM, análisis ambiental y fabricación.

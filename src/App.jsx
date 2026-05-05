@@ -121,7 +121,12 @@ function ScrambleText({ text, trigger }) {
   }, [text]);
 
   useEffect(() => {
-    if (!trigger) return undefined;
+    if (!trigger) {
+      timersRef.current.forEach((timer) => clearTimeout(timer));
+      timersRef.current = [];
+      setDisplayText(text);
+      return undefined;
+    }
 
     timersRef.current.forEach((timer) => clearTimeout(timer));
     timersRef.current = [];
@@ -247,7 +252,7 @@ function RotatingDiscipline() {
     let delay = 72;
 
     if (phase === "typing" && characterCount >= currentWord.length) {
-      delay = 1250;
+      delay = 2500;
     } else if (phase === "deleting") {
       delay = 42;
     }
@@ -328,7 +333,10 @@ function Header() {
         className="nav"
         aria-label="Navegación principal"
         ref={navRef}
-        onMouseLeave={() => moveIndicator(activeHash)}
+        onMouseLeave={() => {
+          moveIndicator(activeHash);
+          setScramble({ href: null, tick: 0 });
+        }}
       >
         <span
           className="nav-indicator"
@@ -362,7 +370,6 @@ function Header() {
             }}
             onFocus={() => {
               moveIndicator(href);
-              setScramble((current) => ({ href, tick: current.tick + 1 }));
             }}
             onClick={() => setActiveHash(href)}
           >
@@ -589,37 +596,36 @@ function Hero() {
 function Intro() {
   return (
     <section className="section intro reveal">
-      <div className="section-label">00 / Posicionamiento</div>
-      <h2>MORPHON conecta geometría, datos, análisis, documentación y fabricación.</h2>
+      <HeroNoiseCanvas />
+      <h3 className="section-label">00 / Diagnóstico</h3>
+      <h2>
+        La desconexión entre arquitectos, ingenieros y constructores{" "}
+        <span className="text-accent">golpea la utilidad</span> de tus proyectos.
+      </h2>
       <p>
-        Creamos sistemas vivos de proyecto: modelos y flujos de trabajo que cambian, calculan,
-        documentan y apoyan decisiones durante el ciclo completo de diseño-a-construcción.
+        Cuando el diseño va por un lado y la ingeniería por otro, el resultado siempre es el mismo:
+        retrabajo constante y errores de coordinación en obra se traducen en dinero tirado a la
+        basura. El flujo tradicional no está diseñado para la eficiencia, está diseñado para la
+        fricción.
       </p>
     </section>
   );
 }
 
 function Problem() {
-  const items = ["Diseño", "Ingeniería", "BIM", "Análisis", "Documentación", "Fabricación"];
-
   return (
     <section className="section problem">
-      <div className="section-label reveal">01 / Problema</div>
-      <div className="editorial-split">
-        <h2 className="reveal">Los proyectos AEC se fragmentan justo cuando más necesitan control.</h2>
-        <div className="problem__text reveal">
+      <h3 className="section-label reveal">01 / La solución</h3>
+      <div className="solution-split">
+        <div className="solution-copy reveal">
+          <h2>Sistemas paramétricos integrados: un solo modelo para controlarlo todo.</h2>
           <p>
-            El diseño ocurre en un lugar, la ingeniería en otro, el BIM en otro más. La fabricación
-            llega tarde y cada cambio multiplica el retrabajo.
+            Unificamos arquitectura, ingeniería y construcción en un ecosistema vivo. Desde la
+            visión conceptual hasta la ejecución en obra, cada disciplina avanza en total sincronía.
           </p>
-          <div className="fragment-list">
-            {items.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
         </div>
+        <div className="solution-visual reveal" aria-hidden="true" />
       </div>
-      <div className="rule-draw" />
     </section>
   );
 }
@@ -627,7 +633,7 @@ function Problem() {
 function Pillars() {
   return (
     <section className="section pillars" id="servicios">
-      <div className="section-label reveal">02 / Servicios</div>
+      <h3 className="section-label reveal">02 / Servicios</h3>
       <h2 className="section-title reveal">Tres líneas para convertir intención compleja en sistemas entregables.</h2>
       <div className="pillar-table reveal">
         {pillars.map((pillar) => (
@@ -646,7 +652,7 @@ function Flagship() {
   return (
     <section className="flagship" id="sistema">
       <div className="flagship__content reveal">
-        <div className="section-label">03 / Oferta insignia</div>
+        <h3 className="section-label">03 / Oferta insignia</h3>
         <h2>SISTEMA PARAMÉTRICO DE DISEÑO-A-CONSTRUCCIÓN</h2>
         <p>
           Un sistema a medida que lleva ideas arquitectónicas o estructurales complejas desde el
@@ -661,7 +667,7 @@ function Flagship() {
 function ServiceRows() {
   return (
     <section className="section service-rows">
-      <div className="section-label reveal">04 / Ofertas comerciales</div>
+      <h3 className="section-label reveal">04 / Ofertas comerciales</h3>
       <div className="service-list reveal">
         {services.map(([title, text, category], index) => (
           <article className="service-row" key={title}>
@@ -681,7 +687,7 @@ function ServiceRows() {
 function Process() {
   return (
     <section className="section process" id="proceso">
-      <div className="section-label reveal">05 / Proceso</div>
+      <h3 className="section-label reveal">05 / Proceso</h3>
       <h2 className="section-title reveal">Del concepto a la fabricación con una lógica conectada.</h2>
       <div className="timeline reveal">
         {processSteps.map(([number, title, text]) => (
@@ -702,7 +708,7 @@ function Contact() {
   return (
     <section className="section contact" id="contacto">
       <div className="contact__copy reveal">
-        <div className="section-label">06 / Contacto</div>
+        <h3 className="section-label">06 / Contacto</h3>
         <h2>TRAE UN PROYECTO COMPLEJO. MORPHON PUEDE CONVERTIRLO EN SISTEMA.</h2>
         <p>
           Fachada, estructura ligera, configurador, flujo BIM o paquete de fabricación: empecemos

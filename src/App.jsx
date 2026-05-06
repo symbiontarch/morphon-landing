@@ -1,9 +1,11 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 gsap.registerPlugin(ScrollTrigger);
+
+const ParametricTower = lazy(() => import("./ParametricTower.jsx"));
 
 const navItems = [
   ["Home", "#top"],
@@ -105,7 +107,18 @@ function usePageMotion() {
       });
     }
 
+    const handleTowerScrollLock = (event) => {
+      if (event.detail?.active) {
+        lenis?.stop();
+      } else {
+        lenis?.start();
+      }
+    };
+
+    window.addEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+
     return () => {
+      window.removeEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
       lenis?.destroy();
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
@@ -612,19 +625,63 @@ function Intro() {
   );
 }
 
+function LazySolutionVisual() {
+  const visualRef = useRef(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+
+  useEffect(() => {
+    const element = visualRef.current;
+    if (!element || shouldLoad) return undefined;
+
+    if (!("IntersectionObserver" in window)) {
+      setShouldLoad(true);
+      return undefined;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "420px 0px" },
+    );
+
+    observer.observe(element);
+
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  return (
+    <div className="solution-visual reveal" ref={visualRef}>
+      {shouldLoad ? (
+        <Suspense fallback={<div className="tower-shell tower-shell--loading">Cargando sistema...</div>}>
+          <ParametricTower />
+        </Suspense>
+      ) : (
+        <div className="tower-shell tower-shell--loading">Sistema paramétrico</div>
+      )}
+    </div>
+  );
+}
+
 function Problem() {
   return (
     <section className="section problem">
       <h3 className="section-label reveal">01 / La solución</h3>
       <div className="solution-split">
         <div className="solution-copy reveal">
-          <h2>Sistemas paramétricos integrados: un solo modelo para controlarlo todo.</h2>
+          <h2 className="solution-headline">
+            <span className="solution-headline__reveal">Sistemas paramétricos integrados:</span>
+            <span className="solution-headline__reveal">un solo modelo para controlarlo todo.</span>
+          </h2>
           <p>
             Unificamos arquitectura, ingeniería y construcción en un ecosistema vivo. Desde la
             visión conceptual hasta la ejecución en obra, cada disciplina avanza en total sincronía.
           </p>
         </div>
-        <div className="solution-visual reveal" aria-hidden="true" />
+        <LazySolutionVisual />
       </div>
     </section>
   );

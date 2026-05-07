@@ -24,18 +24,23 @@ const heroCopyLines = [
 const pillars = [
   {
     index: "01",
-    title: "Diseño Paramétrico",
-    text: "Geometría compleja, fachadas, estructuras tensiles, cascarones, cubiertas y exploración de diseño.",
+    title: "Modelos paramétricos",
+    text: "Modelos interactivos que controlan geometría, variantes, datos y cantidades desde una sola lógica editable.",
   },
   {
     index: "02",
-    title: "BIM + Documentación",
-    text: "Modelos inteligentes, flujos Revit/Rhino, cuantificaciones, documentación constructiva y planos de taller.",
+    title: "Automatización BIM",
+    text: "Flujos inteligentes para conectar Rhino, Grasshopper, Revit y documentación técnica sin duplicar trabajo.",
   },
   {
     index: "03",
-    title: "Productos Digitales",
-    text: "Configuradores 3D, herramientas comerciales, cotización automatizada y flujos internos para equipos AEC.",
+    title: "Geometría construible",
+    text: "Racionalización de fachadas, cubiertas, estructuras ligeras, conexiones, paneles y sistemas especiales.",
+  },
+  {
+    index: "04",
+    title: "Análisis y optimización",
+    text: "Integración de métricas de desempeño, cantidades, radiación, sombras, costos y escenarios para diseñar con evidencia.",
   },
 ];
 
@@ -897,18 +902,29 @@ function Problem() {
 
 function Pillars() {
   return (
-    <section className="section pillars" id="servicios">
+    <section className="section pillars scene-section" id="servicios">
       <SectionTransition />
-      <h3 className="section-label reveal">02 / Servicios</h3>
-      <h2 className="section-title reveal">Tres líneas para convertir intención compleja en sistemas entregables.</h2>
-      <div className="pillar-table reveal">
-        {pillars.map((pillar) => (
-          <article className="pillar-row" key={pillar.title}>
-            <span>{pillar.index}</span>
-            <h3>{pillar.title}</h3>
-            <p>{pillar.text}</p>
-          </article>
-        ))}
+      <HeroNoiseCanvas />
+      <div className="pillars__content reveal scene-content">
+        <div className="pillars__intro">
+          <h3 className="section-label">02 / Servicios</h3>
+          <h2 className="section-title">Cuatro líneas para convertir intención compleja en sistemas entregables.</h2>
+        </div>
+        <div className="pillar-table">
+          {pillars.map((pillar) => (
+            <article className="pillar-row" key={pillar.title}>
+              <div className="pillar-row__top">
+                <span>{pillar.index}</span>
+                <span aria-hidden="true">↗</span>
+              </div>
+              <div className="pillar-row__copy">
+                <h3>{pillar.title}</h3>
+                <p>{pillar.text}</p>
+              </div>
+              <div className="pillar-row__media" aria-hidden="true" />
+            </article>
+          ))}
+        </div>
       </div>
     </section>
   );

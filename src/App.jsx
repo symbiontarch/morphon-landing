@@ -16,10 +16,9 @@ const navItems = [
 ];
 
 const heroCopyLines = [
-  "Somos arquitectos, ingenieros y programadores enfocados en IA,",
-  "construyendo la próxima generación de sistemas",
-  "y flujos de trabajo integrados en BIM.",
-  "Automatizamos lo complejo para que tú puedas construir lo imposible.",
+  "Diseñamos sistemas paramétricos, herramientas de automatización",
+  "y flujos BIM inteligentes para convertir geometría compleja",
+  "en modelos analizables, documentables y construibles.",
 ];
 
 const pillars = [
@@ -60,31 +59,177 @@ const processSteps = [
   ["05", "Fabricación", "Piezas, conexiones, archivos y lógica de ensamble."],
 ];
 
+function SectionTransition() {
+  return (
+    <div className="section-transition" aria-hidden="true">
+      <span className="section-transition__grain" />
+      <span className="section-transition__wipe" />
+      <span className="section-transition__scanline" />
+      <span className="section-transition__corner section-transition__corner--tl" />
+      <span className="section-transition__corner section-transition__corner--tr" />
+      <span className="section-transition__corner section-transition__corner--br" />
+      <span className="section-transition__corner section-transition__corner--bl" />
+      <span className="section-transition__registration section-transition__registration--top" />
+      <span className="section-transition__registration section-transition__registration--right" />
+      <span className="section-transition__registration section-transition__registration--bottom" />
+      <span className="section-transition__registration section-transition__registration--left" />
+    </div>
+  );
+}
+
 function usePageMotion() {
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let lenis;
+    let rafId = 0;
+    let isTowerScrollLocked = false;
 
     if (!reduced) {
       lenis = new Lenis({ lerp: 0.08, wheelMultiplier: 0.85 });
       const raf = (time) => {
         lenis.raf(time);
-        requestAnimationFrame(raf);
+        ScrollTrigger.update();
+        rafId = requestAnimationFrame(raf);
       };
-      requestAnimationFrame(raf);
+      rafId = requestAnimationFrame(raf);
 
-      gsap.utils.toArray(".reveal").forEach((element) => {
+      gsap.set(".hero__inner", { clearProps: "opacity,visibility,transform,filter,clipPath" });
+
+      gsap.utils.toArray(".reveal:not(.hero__inner)").forEach((element) => {
         gsap.fromTo(
           element,
-          { y: 26, opacity: 0 },
+          { y: 34, opacity: 0, clipPath: "inset(0 0 100% 0)" },
           {
             y: 0,
             opacity: 1,
-            duration: 0.9,
+            clipPath: "inset(0 0 0% 0)",
+            duration: 0.95,
             ease: "power3.out",
             scrollTrigger: {
               trigger: element,
-              start: "top 86%",
+              start: "top 84%",
+            },
+          },
+        );
+      });
+
+      if (window.innerWidth >= 900) {
+        gsap.utils.toArray(".hero.scene-section").forEach((section) => {
+          const content = section.querySelectorAll(".scene-content");
+          const transition = section.querySelector(".section-transition");
+
+          const timeline = gsap.timeline({
+            scrollTrigger: {
+              trigger: section,
+              start: "top top",
+              end: "+=68%",
+              scrub: 0.65,
+              pin: true,
+              pinSpacing: false,
+              anticipatePin: 1,
+            },
+          });
+
+          timeline.to(
+            content,
+            { y: -22, duration: 0.72, ease: "none" },
+            0,
+          );
+          if (transition) {
+            timeline.to(transition, { opacity: 0.86, ease: "none" }, 0);
+          }
+        });
+      }
+
+      if (window.innerWidth >= 760) {
+        const snapSections = gsap.utils.toArray(".scene-section");
+        const getSnapRange = () => {
+          const lastSection = snapSections[snapSections.length - 1];
+          const end = Math.max(1, lastSection?.offsetTop || 1);
+          const points = snapSections.map((section) =>
+            gsap.utils.clamp(0, 1, section.offsetTop / end),
+          );
+
+          return { end, points };
+        };
+        const canSnap = () => {
+          const activeElement = document.activeElement;
+          const isEditing = activeElement?.matches?.(
+            "input, textarea, select, button, [contenteditable='true']",
+          );
+
+          return !isTowerScrollLocked && !isEditing;
+        };
+
+        ScrollTrigger.create({
+          id: "scene-section-snap",
+          start: 0,
+          end: () => getSnapRange().end,
+          snap: {
+            snapTo: (progress) => {
+              if (!canSnap()) return progress;
+
+              return gsap.utils.snap(getSnapRange().points, progress);
+            },
+            duration: { min: 0.42, max: 0.78 },
+            delay: 0.06,
+            ease: "power3.inOut",
+            inertia: false,
+          },
+        });
+      }
+
+      gsap.utils.toArray(".section-transition").forEach((element) => {
+        const section = element.parentElement;
+        const scanline = element.querySelector(".section-transition__scanline");
+        const marks = element.querySelectorAll(
+          ".section-transition__corner, .section-transition__registration",
+        );
+
+        gsap.fromTo(
+          element,
+          { opacity: 0 },
+          {
+            opacity: 1,
+            duration: 0.9,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 72%",
+              toggleActions: "play none none reverse",
+            },
+          },
+        );
+
+        gsap.fromTo(
+          scanline,
+          { scaleX: 0, opacity: 0 },
+          {
+            scaleX: 1,
+            opacity: 0.7,
+            ease: "none",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 88%",
+              end: "top 34%",
+              scrub: true,
+            },
+          },
+        );
+
+        gsap.fromTo(
+          marks,
+          { opacity: 0, scale: 0.72 },
+          {
+            opacity: 1,
+            scale: 1,
+            duration: 0.72,
+            stagger: 0.025,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: section,
+              start: "top 70%",
+              toggleActions: "play none none reverse",
             },
           },
         );
@@ -108,7 +253,8 @@ function usePageMotion() {
     }
 
     const handleTowerScrollLock = (event) => {
-      if (event.detail?.active) {
+      isTowerScrollLocked = Boolean(event.detail?.active);
+      if (isTowerScrollLocked) {
         lenis?.stop();
       } else {
         lenis?.start();
@@ -119,6 +265,7 @@ function usePageMotion() {
 
     return () => {
       window.removeEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+      cancelAnimationFrame(rafId);
       lenis?.destroy();
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
@@ -179,6 +326,7 @@ function HeroHeadline() {
   const [lines, setLines] = useState(heroCopyLines.map(() => ""));
   const [visibleLines, setVisibleLines] = useState([]);
   const [settled, setSettled] = useState(false);
+  const [glitchPhrase, setGlitchPhrase] = useState(null);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -229,21 +377,61 @@ function HeroHeadline() {
 
     return () => {
       timers.forEach((timer) => clearTimeout(timer));
+      };
+    }, []);
+
+  useEffect(() => {
+    if (!settled) return undefined;
+
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) return undefined;
+
+    const phrasePositions = heroCopyLines.map((line, lineIndex) => ({ line, lineIndex }));
+    let timeoutId;
+    let pulseTimeoutId;
+
+    const scheduleGlitch = () => {
+      const delay = 2200 + Math.random() * 2600;
+      timeoutId = window.setTimeout(() => {
+        const nextPhrase = phrasePositions[Math.floor(Math.random() * phrasePositions.length)];
+        setGlitchPhrase(nextPhrase);
+        pulseTimeoutId = window.setTimeout(() => setGlitchPhrase(null), 2400);
+        scheduleGlitch();
+      }, delay);
     };
-  }, []);
+
+    scheduleGlitch();
+
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearTimeout(pulseTimeoutId);
+    };
+  }, [settled]);
+
+  const renderLine = (line, lineIndex) => {
+    if (!settled) return lines[lineIndex] || line.replace(/\S/g, "0");
+
+    const isGlitching = glitchPhrase?.lineIndex === lineIndex && glitchPhrase?.line === line;
+
+    return (
+      <span className={`hero-title__phrase${isGlitching ? " is-glitching" : ""}`} data-text={line}>
+        {line}
+      </span>
+    );
+  };
 
   return (
     <h1 className={`hero-title${settled ? " is-settled" : ""}`} data-text={fullText}>
       {heroCopyLines.map((line, index) => (
         <span className="hero-title__line-wrap" key={line}>
           <span
-            className={`hero-title__line${visibleLines.includes(index) ? " is-visible" : ""}`}
-            data-text={line}
-          >
-            {lines[index] || line.replace(/\S/g, "0")}
+              className={`hero-title__line${visibleLines.includes(index) ? " is-visible" : ""}`}
+              data-text={line}
+            >
+              {renderLine(line, index)}
+            </span>
           </span>
-        </span>
-      ))}
+        ))}
     </h1>
   );
 }
@@ -573,7 +761,7 @@ function HeroNoiseCanvas() {
 
 function Hero() {
   return (
-    <section className="hero" id="top">
+    <section className="hero scene-section" id="top">
       <div className="hero__frame" aria-hidden="true">
         <span />
         <span />
@@ -586,7 +774,7 @@ function Hero() {
       </div>
       <HeroNoiseCanvas />
       <ParticleDome />
-      <div className="hero__inner reveal">
+      <div className="hero__inner scene-content">
         <p className="hero-kicker">
           <span>El futuro de la</span>
           <RotatingDiscipline />
@@ -607,20 +795,21 @@ function Hero() {
 }
 
 function Intro() {
-  return (
-    <section className="section intro reveal">
-      <HeroNoiseCanvas />
-      <h3 className="section-label">00 / Diagnóstico</h3>
-      <h2>
-        La desconexión entre arquitectos, ingenieros y constructores{" "}
-        <span className="text-accent">golpea la utilidad</span> de tus proyectos.
-      </h2>
-      <p>
-        Cuando el diseño va por un lado y la ingeniería por otro, el resultado siempre es el mismo:
-        retrabajo constante y errores de coordinación en obra se traducen en dinero tirado a la
-        basura. El flujo tradicional no está diseñado para la eficiencia, está diseñado para la
-        fricción.
-      </p>
+    return (
+      <section className="section intro scene-section">
+          <SectionTransition />
+          <HeroNoiseCanvas />
+        <h3 className="section-label reveal scene-content">00 / Diagnóstico</h3>
+        <h2 className="reveal scene-content">
+          La desconexión entre <span className="no-wrap">diseño, ingeniería y obra</span>{" "}
+          <span className="text-accent">castiga la utilidad</span> de tus proyectos.
+        </h2>
+        <p className="reveal scene-content">
+          Cuando las decisiones clave del proyecto viven en modelos desconectados, cada cambio
+          pierde precisión. El resultado es retrabajo constante, errores de coordinación, ajustes
+          tardíos y horas de equipo convertidas en pérdida. El flujo tradicional no está diseñado
+          para la eficiencia: está diseñado para la fricción.
+        </p>
     </section>
   );
 }
@@ -668,20 +857,39 @@ function LazySolutionVisual() {
 
 function Problem() {
   return (
-    <section className="section problem">
-      <h3 className="section-label reveal">01 / La solución</h3>
+    <section className="section problem scene-section">
+      <SectionTransition />
+      <HeroNoiseCanvas />
       <div className="solution-split">
-        <div className="solution-copy reveal">
+        <div className="solution-copy reveal scene-content">
+          <h3 className="section-label">01 / La solución</h3>
           <h2 className="solution-headline">
-            <span className="solution-headline__reveal">Sistemas paramétricos integrados:</span>
-            <span className="solution-headline__reveal">un solo modelo para controlarlo todo.</span>
+              <span className="solution-headline__reveal">
+                <span className="solution-headline__accent">Sistemas</span>
+              </span>
+              <span className="solution-headline__reveal">
+                <span className="solution-headline__accent">paramétricos:</span>
+              </span>
+              <span className="solution-headline__reveal">
+                un modelo vivo
+              </span>
+              <span className="solution-headline__reveal">
+                para diseñar, analizar
+              </span>
+              <span className="solution-headline__reveal">
+                y construir.
+              </span>
           </h2>
           <p>
-            Unificamos arquitectura, ingeniería y construcción en un ecosistema vivo. Desde la
-            visión conceptual hasta la ejecución en obra, cada disciplina avanza en total sincronía.
+            Integramos geometría, datos, análisis y documentación en un solo modelo interactivo.
+            <br />
+            Cada ajuste actualiza el proyecto en tiempo real, reduce retrabajo y convierte la
+            complejidad en proyectos construibles.
           </p>
         </div>
-        <LazySolutionVisual />
+        <div className="scene-content">
+          <LazySolutionVisual />
+        </div>
       </div>
     </section>
   );
@@ -690,6 +898,7 @@ function Problem() {
 function Pillars() {
   return (
     <section className="section pillars" id="servicios">
+      <SectionTransition />
       <h3 className="section-label reveal">02 / Servicios</h3>
       <h2 className="section-title reveal">Tres líneas para convertir intención compleja en sistemas entregables.</h2>
       <div className="pillar-table reveal">
@@ -708,6 +917,7 @@ function Pillars() {
 function Flagship() {
   return (
     <section className="flagship" id="sistema">
+      <SectionTransition />
       <div className="flagship__content reveal">
         <h3 className="section-label">03 / Oferta insignia</h3>
         <h2>SISTEMA PARAMÉTRICO DE DISEÑO-A-CONSTRUCCIÓN</h2>
@@ -724,6 +934,7 @@ function Flagship() {
 function ServiceRows() {
   return (
     <section className="section service-rows">
+      <SectionTransition />
       <h3 className="section-label reveal">04 / Ofertas comerciales</h3>
       <div className="service-list reveal">
         {services.map(([title, text, category], index) => (
@@ -744,6 +955,7 @@ function ServiceRows() {
 function Process() {
   return (
     <section className="section process" id="proceso">
+      <SectionTransition />
       <h3 className="section-label reveal">05 / Proceso</h3>
       <h2 className="section-title reveal">Del concepto a la fabricación con una lógica conectada.</h2>
       <div className="timeline reveal">
@@ -762,9 +974,10 @@ function Process() {
 function Contact() {
   const [sent, setSent] = useState(false);
 
-  return (
-    <section className="section contact" id="contacto">
-      <div className="contact__copy reveal">
+    return (
+      <section className="section contact" id="contacto">
+        <SectionTransition />
+        <div className="contact__copy reveal">
         <h3 className="section-label">06 / Contacto</h3>
         <h2>TRAE UN PROYECTO COMPLEJO. MORPHON PUEDE CONVERTIRLO EN SISTEMA.</h2>
         <p>

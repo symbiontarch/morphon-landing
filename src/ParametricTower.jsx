@@ -281,7 +281,7 @@ export default function ParametricTower() {
     const surfaceMaterial = new MeshBasicMaterial({
       color: 0xf4fbff,
       transparent: true,
-      opacity: 0.2,
+      opacity: 0.18,
       side: DoubleSide,
       depthWrite: false,
     });
@@ -293,7 +293,7 @@ export default function ParametricTower() {
     const coreMaterial = new MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.32,
+      opacity: 0.28,
       side: DoubleSide,
       depthWrite: false,
     });
@@ -595,7 +595,7 @@ export default function ParametricTower() {
             ))}
           </div>
         </div>
-        <div className="tower-panel-title">Parámetros</div>
+        <div className="tower-panel-title tower-panel-title--parameters">Parámetros</div>
         <div className="tower-slider-panel">
           <div className="tower-slider-grid">
             {controls.map((control) => (

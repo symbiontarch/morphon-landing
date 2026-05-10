@@ -1,18 +1,19 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Fragment, lazy, Suspense, useEffect, useRef, useState } from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
 const ParametricTower = lazy(() => import("./ParametricTower.jsx"));
+const ParametricModelAnimation = lazy(() => import("./ParametricModelAnimation.jsx"));
 
 const navItems = [
-  ["Home", "#top"],
-  ["Servicios", "#servicios"],
-  ["Sistema", "#sistema"],
-  ["Proceso", "#proceso"],
-  ["Contacto", "#contacto"],
+  ["INICIO", "#top"],
+  ["DIAGNÓSTICO", "#diagnostico"],
+  ["SISTEMA", "#sistema"],
+  ["SERVICIOS", "#servicios"],
+  ["CONTACTO", "#contacto"],
 ];
 
 const heroCopyLines = [
@@ -24,44 +25,49 @@ const heroCopyLines = [
 const pillars = [
   {
     index: "01",
-    title: "Modelos paramétricos",
-    text: "Modelos interactivos que controlan geometría, variantes, datos y cantidades desde una sola lógica editable.",
+    title: "BIM + Documentación",
+    titleLines: ["BIM +", "Documentación"],
+    subtitle: "Modelos inteligentes para coordinar, cuantificar y construir.",
+    description:
+      "Desarrollamos modelos BIM, flujos Revit/Rhino, cuantificaciones, documentación ejecutiva, planos de taller y entregables técnicos conectados a la lógica del proyecto.",
+    tags: ["Modelos BIM", "Docs ejecutivos", "Cantidades", "Planos de taller"],
   },
   {
     index: "02",
-    title: "Automatización BIM",
-    text: "Flujos inteligentes para conectar Rhino, Grasshopper, Revit y documentación técnica sin duplicar trabajo.",
+    title: "Productos Digitales AEC",
+    titleLines: ["Productos Digitales", "AEC"],
+    subtitle: "Herramientas para vender, configurar y automatizar decisiones.",
+    description:
+      "Creamos configuradores 3D, cotizadores automatizados, dashboards técnicos e interfaces web para convertir procesos internos en herramientas digitales reutilizables.",
+    tags: ["Configuradores 3D", "Cotización", "Dashboards", "Web"],
   },
   {
     index: "03",
-    title: "Geometría construible",
-    text: "Racionalización de fachadas, cubiertas, estructuras ligeras, conexiones, paneles y sistemas especiales.",
+    title: "Automatización AEC",
+    titleLines: ["Automatización", "AEC"],
+    subtitle: "Menos tareas repetitivas. Más entregables controlados.",
+    description:
+      "Desarrollamos scripts, conectores, plugins y flujos de automatización para reducir trabajo manual, conectar plataformas y acelerar entregables.",
+    tags: ["Scripts", "Conectores", "Plugins", "Flujos internos"],
   },
   {
     index: "04",
-    title: "Análisis y optimización",
-    text: "Integración de métricas de desempeño, cantidades, radiación, sombras, costos y escenarios para diseñar con evidencia.",
+    title: "Formación de Equipos AEC",
+    titleLines: ["Formación de", "Equipos AEC"],
+    subtitle: "Entrenamiento aplicado para adoptar BIM, automatización, IA y flujos paramétricos.",
+    description:
+      "Acompañamos a equipos de arquitectura, ingeniería y construcción con talleres prácticos, estándares internos y ejercicios aplicados a proyectos reales.",
+    tags: ["Capacitación", "BIM", "IA aplicada", "Flujos AEC"],
   },
 ];
 
-const services = [
-  ["Sistema de Entrega BIM Paramétrico", "Modelos BIM inteligentes que se actualizan con cambios de diseño y apoyan coordinación, cantidades y documentación.", "BIM"],
-  ["Sistema de Diseño para Geometría Compleja", "Racionalización de formas no estándar en superficies, paneles, tiras, módulos y sistemas construibles.", "GEOMETRÍA"],
-  ["Sistema de Fachada Paramétrica", "Fachadas que conectan geometría, clima, módulos, aperturas, estructura y documentación desde el inicio.", "ENVOLVENTE"],
-  ["Estructuras Tensiles + Fabricación", "Form-finding, membranas, cables, patronaje, conexiones, planos de taller y geometría de fabricación.", "TENSIL"],
-  ["Diseño Estructuralmente Informado", "Exploración formal con comportamiento estructural, rigidez, curvatura, optimización y coordinación técnica.", "ESTRUCTURA"],
-  ["Análisis de Diseño Climático", "Radiación solar, sombras, luz natural, viento, agua, escenarios comparativos y recomendaciones visuales.", "ANÁLISIS"],
-  ["Sistema de Diseño-a-Fabricación", "Partes, numeración, ensamble, CNC, planos de instalación, cantidades y lógica para construir elementos complejos.", "FABRICACIÓN"],
-  ["Configurador de Producto AEC", "Herramientas web para visualizar, personalizar, cotizar y prevender productos arquitectónicos o constructivos.", "DIGITAL"],
-  ["Automatización de Flujos AEC", "Scripts y herramientas Grasshopper, Python, C#, Revit y Rhino para reducir trabajo repetitivo de semanas a días.", "AUTOMATION"],
-];
-
-const processSteps = [
-  ["01", "Concepto", "Intención de diseño, restricciones del sitio y objetivos técnicos."],
-  ["02", "Modelo", "Sistema paramétrico editable, conectado y preparado para iterar."],
-  ["03", "Análisis", "Desempeño ambiental, geométrico, estructural o de fabricación."],
-  ["04", "Documentación", "Dibujos, cantidades, coordinación y paquetes constructivos."],
-  ["05", "Fabricación", "Piezas, conexiones, archivos y lógica de ensamble."],
+const flagshipStages = [
+  { key: "design", title: "Diseño", text: "Geometría base" },
+  { key: "analysis", title: "Análisis", text: "Desempeño" },
+  { key: "bim", title: "BIM", text: "Coordinación" },
+  { key: "documentation", title: "Documentación", text: "Ejecutiva" },
+  { key: "workshop", title: "Taller", text: "Fabricación" },
+  { key: "assembly", title: "Montaje", text: "Secuencia" },
 ];
 
 function SectionTransition() {
@@ -88,9 +94,38 @@ function usePageMotion() {
     let lenis;
     let rafId = 0;
     let isTowerScrollLocked = false;
+    const hashScrollTimeouts = [];
+    const resolveHashTarget = (hash) => {
+      if (!hash) return null;
+
+      return document.getElementById(decodeURIComponent(hash.replace("#", "")));
+    };
+    const scrollToHash = (hash, immediate = false) => {
+      const target = resolveHashTarget(hash);
+      if (!target) return;
+
+      if (lenis && !reduced) {
+        lenis.scrollTo(target, { immediate, lock: true, force: true });
+        return;
+      }
+
+      target.scrollIntoView({
+        behavior: immediate || reduced ? "auto" : "smooth",
+        block: "start",
+      });
+    };
+    const scheduleHashScroll = (immediate = false) => {
+      [0, 140, 720, 1400].forEach((delay) => {
+        const timeoutId = window.setTimeout(() => {
+          ScrollTrigger.refresh();
+          scrollToHash(window.location.hash, immediate || delay < 200);
+        }, delay);
+        hashScrollTimeouts.push(timeoutId);
+      });
+    };
 
     if (!reduced) {
-      lenis = new Lenis({ lerp: 0.08, wheelMultiplier: 0.85 });
+      lenis = new Lenis({ lerp: 0.12, wheelMultiplier: 1 });
       const raf = (time) => {
         lenis.raf(time);
         ScrollTrigger.update();
@@ -147,7 +182,7 @@ function usePageMotion() {
       }
 
       if (window.innerWidth >= 760) {
-        const snapSections = gsap.utils.toArray(".scene-section");
+        const snapSections = gsap.utils.toArray("main section");
         const getSnapRange = () => {
           const lastSection = snapSections[snapSections.length - 1];
           const end = Math.max(1, lastSection?.offsetTop || 1);
@@ -167,7 +202,7 @@ function usePageMotion() {
         };
 
         ScrollTrigger.create({
-          id: "scene-section-snap",
+          id: "page-section-snap",
           start: 0,
           end: () => getSnapRange().end,
           snap: {
@@ -176,9 +211,9 @@ function usePageMotion() {
 
               return gsap.utils.snap(getSnapRange().points, progress);
             },
-            duration: { min: 0.42, max: 0.78 },
-            delay: 0.06,
-            ease: "power3.inOut",
+            duration: { min: 0.18, max: 0.34 },
+            delay: 0.015,
+            ease: "power2.out",
             inertia: false,
           },
         });
@@ -265,11 +300,19 @@ function usePageMotion() {
         lenis?.start();
       }
     };
+    const handleHashScroll = () => {
+      scheduleHashScroll();
+    };
 
     window.addEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+    window.addEventListener("hashchange", handleHashScroll);
+
+    scheduleHashScroll(true);
 
     return () => {
       window.removeEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+      window.removeEventListener("hashchange", handleHashScroll);
+      hashScrollTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
       cancelAnimationFrame(rafId);
       lenis?.destroy();
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
@@ -495,6 +538,7 @@ function Header() {
   const navRef = useRef(null);
   const linkRefs = useRef(new Map());
   const [activeHash, setActiveHash] = useState("#top");
+  const [isLightHeader, setIsLightHeader] = useState(false);
   const [indicator, setIndicator] = useState({ opacity: 0, x: 0, y: 0, width: 0, height: 0 });
   const [scramble, setScramble] = useState({ href: null, tick: 0 });
 
@@ -514,24 +558,41 @@ function Header() {
   };
 
   useEffect(() => {
+    let frameId = 0;
+
+    const syncHeaderTheme = () => {
+      frameId = 0;
+      setIsLightHeader(false);
+    };
+
+    const requestHeaderThemeSync = () => {
+      if (frameId) return;
+      frameId = requestAnimationFrame(syncHeaderTheme);
+    };
+
     const syncHash = () => {
       const nextHash = window.location.hash || "#top";
       const knownHash = navItems.some(([, href]) => href === nextHash) ? nextHash : "#top";
       setActiveHash(knownHash);
       requestAnimationFrame(() => moveIndicator(knownHash));
+      requestHeaderThemeSync();
     };
 
     syncHash();
+    requestHeaderThemeSync();
     window.addEventListener("hashchange", syncHash);
     window.addEventListener("resize", syncHash);
+    window.addEventListener("scroll", requestHeaderThemeSync, { passive: true });
     return () => {
+      cancelAnimationFrame(frameId);
       window.removeEventListener("hashchange", syncHash);
       window.removeEventListener("resize", syncHash);
+      window.removeEventListener("scroll", requestHeaderThemeSync);
     };
   }, []);
 
   return (
-    <header className="site-header">
+    <header className={`site-header${isLightHeader ? " site-header--light" : ""}`}>
       <a className="wordmark" href="#top" aria-label="MORPHON inicio">
         MORPHON
       </a>
@@ -801,7 +862,7 @@ function Hero() {
 
 function Intro() {
     return (
-      <section className="section intro scene-section">
+      <section className="section intro scene-section" id="diagnostico">
           <SectionTransition />
           <HeroNoiseCanvas />
         <h3 className="section-label reveal scene-content">00 / Diagnóstico</h3>
@@ -862,7 +923,7 @@ function LazySolutionVisual() {
 
 function Problem() {
   return (
-    <section className="section problem scene-section">
+    <section className="section problem scene-section" id="sistema">
       <SectionTransition />
       <HeroNoiseCanvas />
       <div className="solution-split">
@@ -900,88 +961,148 @@ function Problem() {
   );
 }
 
-function Pillars() {
+function usePrefersReducedMotion() {
+  const [reducedMotion, setReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncPreference = () => setReducedMotion(media.matches);
+
+    syncPreference();
+    media.addEventListener?.("change", syncPreference);
+
+    return () => media.removeEventListener?.("change", syncPreference);
+  }, []);
+
+  return reducedMotion;
+}
+
+function PipelineStepper({ stages, activeIndex, onSelect }) {
   return (
-    <section className="section pillars scene-section" id="servicios">
+    <div className="pipeline-stepper" aria-label="Etapas de Planeación Digital">
+      {stages.map((stage, index) => (
+        <Fragment key={stage.key}>
+          <button
+            className={`pipeline-step${activeIndex === index ? " is-active" : ""}`}
+            type="button"
+            aria-current={activeIndex === index ? "step" : undefined}
+            onClick={() => onSelect(index)}
+          >
+            <span className="pipeline-step__index">{String(index + 1).padStart(2, "0")}</span>
+            <span>
+              <strong>{stage.title}</strong>
+              <span>{stage.text}</span>
+            </span>
+          </button>
+          {index < stages.length - 1 && <span className="pipeline-stepper__arrow" aria-hidden="true" />}
+        </Fragment>
+      ))}
+    </div>
+  );
+}
+
+function FlagshipOfferSection() {
+  const reducedMotion = usePrefersReducedMotion();
+  const [activeStage, setActiveStage] = useState(0);
+
+  useEffect(() => {
+    if (reducedMotion) return undefined;
+
+    const interval = window.setInterval(() => {
+      setActiveStage((current) => (current + 1) % flagshipStages.length);
+    }, 2600);
+
+    return () => window.clearInterval(interval);
+  }, [reducedMotion]);
+
+  return (
+    <section className="flagship-offer scene-section" id="oferta-insignia">
       <SectionTransition />
       <HeroNoiseCanvas />
-      <div className="pillars__content reveal scene-content">
-        <div className="pillars__intro">
-          <h3 className="section-label">02 / Servicios</h3>
-          <h2 className="section-title">Cuatro líneas para convertir intención compleja en sistemas entregables.</h2>
+      <div className="flagship-offer__frame reveal scene-content">
+        <span className="flagship-offer__corner flagship-offer__corner--tl" aria-hidden="true" />
+        <span className="flagship-offer__corner flagship-offer__corner--tr" aria-hidden="true" />
+        <span className="flagship-offer__corner flagship-offer__corner--br" aria-hidden="true" />
+        <span className="flagship-offer__corner flagship-offer__corner--bl" aria-hidden="true" />
+        <div className="flagship-offer__layout">
+          <div className="flagship-offer__copy">
+            <h3 className="section-label">02 / Oferta Insignia</h3>
+            <h2>
+              <span>Planeación</span>
+              <span>Digital</span>
+            </h2>
+            <p className="flagship-offer__subtitle">Del diseño al entregable técnico desde un solo modelo.</p>
+            <p className="flagship-offer__text">
+              Desarrollamos modelos paramétricos BIM que conectan diseño, ingeniería, análisis,
+              cuantificación, documentación ejecutiva, planos de taller y coordinación técnica.
+            </p>
+          </div>
+          <div className="flagship-offer__visual" aria-label="Modelo técnico animado de Planeación Digital">
+            <Suspense fallback={<div className="model-animation model-animation--loading">Modelo vivo</div>}>
+              <ParametricModelAnimation activeStage={activeStage} reducedMotion={reducedMotion} />
+            </Suspense>
+          </div>
         </div>
-        <div className="pillar-table">
-          {pillars.map((pillar) => (
-            <article className="pillar-row" key={pillar.title}>
-              <div className="pillar-row__top">
-                <span>{pillar.index}</span>
-                <span aria-hidden="true">↗</span>
-              </div>
-              <div className="pillar-row__copy">
-                <h3>{pillar.title}</h3>
-                <p>{pillar.text}</p>
-              </div>
-              <div className="pillar-row__media" aria-hidden="true" />
-            </article>
+        <PipelineStepper stages={flagshipStages} activeIndex={activeStage} onSelect={setActiveStage} />
+      </div>
+    </section>
+  );
+}
+
+function ServiceMark() {
+  return (
+    <span className="service-card__mark" aria-hidden="true">
+      <span />
+      <span />
+      <span />
+    </span>
+  );
+}
+
+function ServiceCard({ service }) {
+  return (
+    <article className="service-card">
+      <div className="service-card__top">
+        <span>{service.index}</span>
+        <span className="service-card__arrow" aria-hidden="true" />
+      </div>
+      <div className="service-card__body">
+        <ServiceMark />
+        <h3>
+          {(service.titleLines || [service.title]).map((line) => (
+            <span key={line}>{line}</span>
+          ))}
+        </h3>
+        <p>{service.subtitle}</p>
+      </div>
+      <div className="service-card__tags" aria-label={`Entregables de ${service.title}`}>
+        {service.tags.map((tag) => (
+          <span key={tag}>{tag}</span>
+        ))}
+      </div>
+    </article>
+  );
+}
+
+function ServicesSection() {
+  return (
+    <section className="services-section scene-section" id="servicios">
+      <SectionTransition />
+      <HeroNoiseCanvas />
+      <div className="services-section__inner reveal scene-content">
+        <div className="services-section__intro">
+          <h3 className="section-label">03 / Servicios</h3>
+          <h2>Servicios específicos para etapas críticas del proyecto.</h2>
+          <p>
+            Podemos desarrollar soluciones puntuales para coordinar, automatizar, documentar o
+            capacitar equipos AEC.
+          </p>
+        </div>
+        <div className="services-grid">
+          {pillars.map((service) => (
+            <ServiceCard service={service} key={service.title} />
           ))}
         </div>
-      </div>
-    </section>
-  );
-}
-
-function Flagship() {
-  return (
-    <section className="flagship" id="sistema">
-      <SectionTransition />
-      <div className="flagship__content reveal">
-        <h3 className="section-label">03 / Oferta insignia</h3>
-        <h2>SISTEMA PARAMÉTRICO DE DISEÑO-A-CONSTRUCCIÓN</h2>
-        <p>
-          Un sistema a medida que lleva ideas arquitectónicas o estructurales complejas desde el
-          concepto hasta una realidad construible: exploración, BIM, análisis, documentación,
-          cuantificación y lógica de fabricación.
-        </p>
-      </div>
-    </section>
-  );
-}
-
-function ServiceRows() {
-  return (
-    <section className="section service-rows">
-      <SectionTransition />
-      <h3 className="section-label reveal">04 / Ofertas comerciales</h3>
-      <div className="service-list reveal">
-        {services.map(([title, text, category], index) => (
-          <article className="service-row" key={title}>
-            <span className="service-row__index">{String(index + 1).padStart(2, "0")}</span>
-            <div>
-              <p className="service-row__category">{category}</p>
-              <h3>{title}</h3>
-            </div>
-            <p>{text}</p>
-          </article>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function Process() {
-  return (
-    <section className="section process" id="proceso">
-      <SectionTransition />
-      <h3 className="section-label reveal">05 / Proceso</h3>
-      <h2 className="section-title reveal">Del concepto a la fabricación con una lógica conectada.</h2>
-      <div className="timeline reveal">
-        {processSteps.map(([number, title, text]) => (
-          <article className="timeline-row" key={title}>
-            <span>{number}</span>
-            <h3>{title}</h3>
-            <p>{text}</p>
-          </article>
-        ))}
       </div>
     </section>
   );
@@ -994,7 +1115,7 @@ function Contact() {
       <section className="section contact" id="contacto">
         <SectionTransition />
         <div className="contact__copy reveal">
-        <h3 className="section-label">06 / Contacto</h3>
+        <h3 className="section-label">04 / Contacto</h3>
         <h2>TRAE UN PROYECTO COMPLEJO. MORPHON PUEDE CONVERTIRLO EN SISTEMA.</h2>
         <p>
           Fachada, estructura ligera, configurador, flujo BIM o paquete de fabricación: empecemos
@@ -1039,10 +1160,8 @@ function App() {
         <Hero />
         <Intro />
         <Problem />
-        <Pillars />
-        <Flagship />
-        <ServiceRows />
-        <Process />
+        <FlagshipOfferSection />
+        <ServicesSection />
         <Contact />
       </main>
       <footer className="footer">

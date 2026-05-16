@@ -1005,16 +1005,6 @@ function FlagshipOfferSection() {
   const reducedMotion = usePrefersReducedMotion();
   const [activeStage, setActiveStage] = useState(0);
 
-  useEffect(() => {
-    if (reducedMotion) return undefined;
-
-    const interval = window.setInterval(() => {
-      setActiveStage((current) => (current + 1) % flagshipStages.length);
-    }, 2600);
-
-    return () => window.clearInterval(interval);
-  }, [reducedMotion]);
-
   return (
     <section className="flagship-offer scene-section" id="oferta-insignia">
       <SectionTransition />

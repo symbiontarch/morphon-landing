@@ -1,7 +1,7 @@
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
-import { Fragment, lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,9 +12,22 @@ const navItems = [
   ["INICIO", "#top"],
   ["DIAGNÓSTICO", "#diagnostico"],
   ["SISTEMA", "#sistema"],
-  ["SERVICIOS", "#servicios"],
+  ["SERVICIOS", "#oferta-insignia"],
   ["CONTACTO", "#contacto"],
 ];
+
+const SNAP_SECTION_HASHES = ["#top", "#diagnostico", "#sistema", "#oferta-insignia", "#servicios", "#contacto"];
+const SECTION_SNAP_MIN_WIDTH = 760;
+const SECTION_SNAP_IDLE_MS = 160;
+const SECTION_SNAP_THRESHOLD_VH = 0.22;
+const SECTION_SNAP_COOLDOWN_MS = 700;
+const NAV_SCROLL_DURATION = 0.9;
+const SNAP_SCROLL_DURATION = 0.55;
+
+function getNavHashForSection(hash) {
+  if (hash === "#servicios") return "#oferta-insignia";
+  return navItems.some(([, href]) => href === hash) ? hash : "#top";
+}
 
 const heroCopyLines = [
   "Diseñamos sistemas paramétricos, herramientas de automatización",
@@ -66,9 +79,9 @@ const flagshipStages = [
   { key: "analysis", title: "Análisis", text: "Desempeño" },
   { key: "bim", title: "BIM", text: "Coordinación" },
   { key: "documentation", title: "Documentación", text: "Ejecutiva" },
-  { key: "workshop", title: "Taller", text: "Fabricación" },
-  { key: "assembly", title: "Montaje", text: "Secuencia" },
 ];
+
+const flagshipStageDurations = [8000, 8000, 8000, 8000];
 
 function SectionTransition() {
   return (
@@ -93,35 +106,175 @@ function usePageMotion() {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let lenis;
     let rafId = 0;
+    let activeFrameId = 0;
+    let resizeTimeoutId = 0;
+    let snapIdleTimeoutId = 0;
+    let snapCooldownUntil = 0;
+    let programmaticTimeoutId = 0;
+    let programmaticScrollToken = 0;
+    let lastActiveHash = "";
     let isTowerScrollLocked = false;
+    let isProgrammaticScroll = false;
     const hashScrollTimeouts = [];
+    const clearScheduledHashScroll = () => {
+      while (hashScrollTimeouts.length) {
+        window.clearTimeout(hashScrollTimeouts.pop());
+      }
+    };
+    const clearSnapIdleTimer = () => {
+      if (!snapIdleTimeoutId) return;
+      window.clearTimeout(snapIdleTimeoutId);
+      snapIdleTimeoutId = 0;
+    };
+    const clearProgrammaticTimer = () => {
+      if (!programmaticTimeoutId) return;
+      window.clearTimeout(programmaticTimeoutId);
+      programmaticTimeoutId = 0;
+    };
+    const easeOutCubic = (value) => 1 - Math.pow(1 - value, 3);
     const resolveHashTarget = (hash) => {
       if (!hash) return null;
 
       return document.getElementById(decodeURIComponent(hash.replace("#", "")));
     };
-    const scrollToHash = (hash, immediate = false) => {
+    const getSectionTop = (hash) => {
+      if (hash === "#top") return 0;
       const target = resolveHashTarget(hash);
-      if (!target) return;
+      if (!target) return 0;
+      return Math.max(0, target.getBoundingClientRect().top + window.scrollY);
+    };
+    const getSectionEntries = () =>
+      SNAP_SECTION_HASHES
+        .map((hash) => ({ hash, top: getSectionTop(hash) }))
+        .sort((a, b) => a.top - b.top);
+    const getActiveSectionHash = () => {
+      const marker = window.scrollY + Math.min(window.innerHeight * 0.34, 320);
+      return getSectionEntries().reduce((active, section) => (section.top <= marker ? section.hash : active), "#top");
+    };
+    const dispatchActiveSection = (hash) => {
+      if (!hash || hash === lastActiveHash) return;
+      lastActiveHash = hash;
+      window.dispatchEvent(new CustomEvent("morphon:active-section", { detail: { hash } }));
+    };
+    const syncActiveSection = (forcedHash) => {
+      dispatchActiveSection(forcedHash || getActiveSectionHash());
+    };
+    const requestActiveSectionSync = () => {
+      if (activeFrameId || isProgrammaticScroll) return;
+      activeFrameId = window.requestAnimationFrame(() => {
+        activeFrameId = 0;
+        syncActiveSection();
+      });
+    };
+    const setLocationHash = (hash, mode = "replace") => {
+      if (!hash || window.location.hash === hash) return;
+      const method = mode === "push" ? "pushState" : "replaceState";
+      window.history[method](null, "", `${window.location.pathname}${window.location.search}${hash}`);
+    };
+    const finishProgrammaticScroll = (hash, historyMode) => {
+      isProgrammaticScroll = false;
+      clearProgrammaticTimer();
+      if (historyMode) {
+        setLocationHash(hash, historyMode);
+      }
+      syncActiveSection(hash);
+    };
+    const scrollToHash = (hash, options = {}) => {
+      const {
+        immediate = false,
+        source = "programmatic",
+        historyMode = null,
+      } = options;
+      const targetHash = SNAP_SECTION_HASHES.includes(hash) ? hash : "#top";
+      const targetTop = getSectionTop(targetHash);
+      const duration = source === "snap" ? SNAP_SCROLL_DURATION : NAV_SCROLL_DURATION;
+      const token = programmaticScrollToken + 1;
+      let completed = false;
+      const complete = () => {
+        if (completed || token !== programmaticScrollToken) return;
+        completed = true;
+        finishProgrammaticScroll(targetHash, historyMode);
+      };
+
+      clearSnapIdleTimer();
+      clearProgrammaticTimer();
+      programmaticScrollToken = token;
+      isProgrammaticScroll = true;
+      ScrollTrigger.update();
 
       if (lenis && !reduced) {
-        lenis.scrollTo(target, { immediate, lock: true, force: true });
+        lenis.scrollTo(targetTop, {
+          duration,
+          easing: easeOutCubic,
+          force: true,
+          immediate,
+          lock: true,
+          onComplete: complete,
+        });
+        programmaticTimeoutId = window.setTimeout(complete, immediate ? 80 : duration * 1000 + 220);
         return;
       }
 
-      target.scrollIntoView({
+      window.scrollTo({
+        top: targetTop,
         behavior: immediate || reduced ? "auto" : "smooth",
-        block: "start",
       });
+      programmaticTimeoutId = window.setTimeout(complete, immediate || reduced ? 80 : duration * 1000 + 220);
     };
-    const scheduleHashScroll = (immediate = false) => {
-      [0, 140, 720, 1400].forEach((delay) => {
+    const scheduleHashScroll = (immediate = false, hash = window.location.hash, retry = true) => {
+      clearScheduledHashScroll();
+      (retry ? [0, 140, 720, 1400] : [0]).forEach((delay) => {
         const timeoutId = window.setTimeout(() => {
           ScrollTrigger.refresh();
-          scrollToHash(window.location.hash, immediate || delay < 200);
+          scrollToHash(hash || "#top", { immediate: immediate || delay < 200, source: "history" });
         }, delay);
         hashScrollTimeouts.push(timeoutId);
       });
+    };
+    const getNearestSection = () => {
+      const scrollY = window.scrollY;
+      return getSectionEntries().reduce((nearest, section) => {
+        const distance = Math.abs(section.top - scrollY);
+        return distance < nearest.distance ? { ...section, distance } : nearest;
+      }, { hash: "#top", top: 0, distance: Number.POSITIVE_INFINITY });
+    };
+    const isFormFocused = () => {
+      const activeElement = document.activeElement;
+      return Boolean(activeElement?.matches?.("input, textarea, select, button, [contenteditable='true']"));
+    };
+    const canSoftSnap = () =>
+      !reduced &&
+      window.innerWidth >= SECTION_SNAP_MIN_WIDTH &&
+      !isTowerScrollLocked &&
+      !isProgrammaticScroll &&
+      performance.now() >= snapCooldownUntil &&
+      !isFormFocused();
+    const handleSoftSnap = () => {
+      snapIdleTimeoutId = 0;
+      if (!canSoftSnap()) return;
+
+      const nearest = getNearestSection();
+      const snapThreshold = window.innerHeight * SECTION_SNAP_THRESHOLD_VH;
+      if (!nearest || nearest.distance < 2 || nearest.distance > snapThreshold) return;
+
+      snapCooldownUntil = performance.now() + SECTION_SNAP_COOLDOWN_MS;
+      scrollToHash(nearest.hash, { source: "snap", historyMode: "replace" });
+    };
+    const scheduleSoftSnap = () => {
+      clearSnapIdleTimer();
+      if (!canSoftSnap()) return;
+      snapIdleTimeoutId = window.setTimeout(handleSoftSnap, SECTION_SNAP_IDLE_MS);
+    };
+    const handleScroll = () => {
+      requestActiveSectionSync();
+      scheduleSoftSnap();
+    };
+    const handleResize = () => {
+      window.clearTimeout(resizeTimeoutId);
+      resizeTimeoutId = window.setTimeout(() => {
+        ScrollTrigger.refresh();
+        syncActiveSection();
+      }, 180);
     };
 
     if (!reduced) {
@@ -135,19 +288,20 @@ function usePageMotion() {
 
       gsap.set(".hero__inner", { clearProps: "opacity,visibility,transform,filter,clipPath" });
 
-      gsap.utils.toArray(".reveal:not(.hero__inner)").forEach((element) => {
+      gsap.utils.toArray(".scene-section:not(.hero) .scene-content").forEach((element) => {
         gsap.fromTo(
           element,
-          { y: 34, opacity: 0, clipPath: "inset(0 0 100% 0)" },
+          { y: 24, opacity: 0, filter: "blur(4px)" },
           {
             y: 0,
             opacity: 1,
-            clipPath: "inset(0 0 0% 0)",
-            duration: 0.95,
+            filter: "blur(0px)",
+            duration: 0.82,
             ease: "power3.out",
             scrollTrigger: {
               trigger: element,
-              start: "top 84%",
+              start: "top 86%",
+              toggleActions: "play none none reverse",
             },
           },
         );
@@ -181,44 +335,6 @@ function usePageMotion() {
         });
       }
 
-      if (window.innerWidth >= 760) {
-        const snapSections = gsap.utils.toArray("main section");
-        const getSnapRange = () => {
-          const lastSection = snapSections[snapSections.length - 1];
-          const end = Math.max(1, lastSection?.offsetTop || 1);
-          const points = snapSections.map((section) =>
-            gsap.utils.clamp(0, 1, section.offsetTop / end),
-          );
-
-          return { end, points };
-        };
-        const canSnap = () => {
-          const activeElement = document.activeElement;
-          const isEditing = activeElement?.matches?.(
-            "input, textarea, select, button, [contenteditable='true']",
-          );
-
-          return !isTowerScrollLocked && !isEditing;
-        };
-
-        ScrollTrigger.create({
-          id: "page-section-snap",
-          start: 0,
-          end: () => getSnapRange().end,
-          snap: {
-            snapTo: (progress) => {
-              if (!canSnap()) return progress;
-
-              return gsap.utils.snap(getSnapRange().points, progress);
-            },
-            duration: { min: 0.18, max: 0.34 },
-            delay: 0.015,
-            ease: "power2.out",
-            inertia: false,
-          },
-        });
-      }
-
       gsap.utils.toArray(".section-transition").forEach((element) => {
         const section = element.parentElement;
         const scanline = element.querySelector(".section-transition__scanline");
@@ -231,11 +347,11 @@ function usePageMotion() {
           { opacity: 0 },
           {
             opacity: 1,
-            duration: 0.9,
+            duration: 0.48,
             ease: "power2.out",
             scrollTrigger: {
               trigger: section,
-              start: "top 72%",
+              start: "top 82%",
               toggleActions: "play none none reverse",
             },
           },
@@ -243,32 +359,33 @@ function usePageMotion() {
 
         gsap.fromTo(
           scanline,
-          { scaleX: 0, opacity: 0 },
+          { xPercent: -8, scaleX: 0, opacity: 0 },
           {
+            xPercent: 0,
             scaleX: 1,
-            opacity: 0.7,
-            ease: "none",
+            opacity: 0.52,
+            duration: 0.78,
+            ease: "power2.out",
             scrollTrigger: {
               trigger: section,
-              start: "top 88%",
-              end: "top 34%",
-              scrub: true,
+              start: "top 86%",
+              toggleActions: "play none none reverse",
             },
           },
         );
 
         gsap.fromTo(
           marks,
-          { opacity: 0, scale: 0.72 },
+          { opacity: 0, scale: 0.82 },
           {
             opacity: 1,
             scale: 1,
-            duration: 0.72,
+            duration: 0.52,
             stagger: 0.025,
             ease: "power2.out",
             scrollTrigger: {
               trigger: section,
-              start: "top 70%",
+              start: "top 82%",
               toggleActions: "play none none reverse",
             },
           },
@@ -303,16 +420,37 @@ function usePageMotion() {
     const handleHashScroll = () => {
       scheduleHashScroll();
     };
+    const handleHashNavigate = (event) => {
+      clearScheduledHashScroll();
+      scrollToHash(event.detail?.hash || window.location.hash || "#top", {
+        immediate: Boolean(event.detail?.immediate),
+        source: event.detail?.source || "nav",
+        historyMode: event.detail?.source === "snap" ? "replace" : "push",
+      });
+    };
 
     window.addEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+    window.addEventListener("morphon:navigate-hash", handleHashNavigate);
     window.addEventListener("hashchange", handleHashScroll);
+    window.addEventListener("popstate", handleHashScroll);
+    window.addEventListener("resize", handleResize);
+    window.addEventListener("scroll", handleScroll, { passive: true });
 
     scheduleHashScroll(true);
+    syncActiveSection();
 
     return () => {
       window.removeEventListener("morphon:tower-scroll-lock", handleTowerScrollLock);
+      window.removeEventListener("morphon:navigate-hash", handleHashNavigate);
       window.removeEventListener("hashchange", handleHashScroll);
-      hashScrollTimeouts.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      window.removeEventListener("popstate", handleHashScroll);
+      window.removeEventListener("resize", handleResize);
+      window.removeEventListener("scroll", handleScroll);
+      clearScheduledHashScroll();
+      clearSnapIdleTimer();
+      clearProgrammaticTimer();
+      window.clearTimeout(resizeTimeoutId);
+      cancelAnimationFrame(activeFrameId);
       cancelAnimationFrame(rafId);
       lenis?.destroy();
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
@@ -557,12 +695,25 @@ function Header() {
     });
   };
 
+  const navigateToHash = (event, href) => {
+    event.preventDefault();
+    setActiveHash(href);
+
+    window.dispatchEvent(new CustomEvent("morphon:navigate-hash", { detail: { hash: href, immediate: href === "#top", source: "nav" } }));
+    requestAnimationFrame(() => moveIndicator(href));
+  };
+
   useEffect(() => {
     let frameId = 0;
 
     const syncHeaderTheme = () => {
       frameId = 0;
-      setIsLightHeader(false);
+      const probeY = Math.min(82, window.innerHeight * 0.16);
+      const currentSection = Array.from(document.querySelectorAll("main section")).find((section) => {
+        const rect = section.getBoundingClientRect();
+        return rect.top <= probeY && rect.bottom >= probeY;
+      });
+      setIsLightHeader(currentSection?.id === "contacto");
     };
 
     const requestHeaderThemeSync = () => {
@@ -572,7 +723,13 @@ function Header() {
 
     const syncHash = () => {
       const nextHash = window.location.hash || "#top";
-      const knownHash = navItems.some(([, href]) => href === nextHash) ? nextHash : "#top";
+      const knownHash = getNavHashForSection(nextHash);
+      setActiveHash(knownHash);
+      requestAnimationFrame(() => moveIndicator(knownHash));
+      requestHeaderThemeSync();
+    };
+    const syncActiveSection = (event) => {
+      const knownHash = getNavHashForSection(event.detail?.hash || "#top");
       setActiveHash(knownHash);
       requestAnimationFrame(() => moveIndicator(knownHash));
       requestHeaderThemeSync();
@@ -580,11 +737,13 @@ function Header() {
 
     syncHash();
     requestHeaderThemeSync();
+    window.addEventListener("morphon:active-section", syncActiveSection);
     window.addEventListener("hashchange", syncHash);
     window.addEventListener("resize", syncHash);
     window.addEventListener("scroll", requestHeaderThemeSync, { passive: true });
     return () => {
       cancelAnimationFrame(frameId);
+      window.removeEventListener("morphon:active-section", syncActiveSection);
       window.removeEventListener("hashchange", syncHash);
       window.removeEventListener("resize", syncHash);
       window.removeEventListener("scroll", requestHeaderThemeSync);
@@ -593,7 +752,7 @@ function Header() {
 
   return (
     <header className={`site-header${isLightHeader ? " site-header--light" : ""}`}>
-      <a className="wordmark" href="#top" aria-label="MORPHON inicio">
+      <a className="wordmark" href="#top" aria-label="MORPHON inicio" onClick={(event) => navigateToHash(event, "#top")}>
         MORPHON
       </a>
       <nav
@@ -638,13 +797,13 @@ function Header() {
             onFocus={() => {
               moveIndicator(href);
             }}
-            onClick={() => setActiveHash(href)}
+            onClick={(event) => navigateToHash(event, href)}
           >
             <ScrambleText text={label} trigger={scramble.href === href ? scramble.tick : 0} />
           </a>
         ))}
       </nav>
-      <a className="header-cta" href="#contacto">
+      <a className="header-cta" href="#contacto" onClick={(event) => navigateToHash(event, "#contacto")}>
         Iniciar proyecto
       </a>
     </header>
@@ -1003,10 +1162,63 @@ function PipelineStepper({ stages, activeIndex, onSelect }) {
 
 function FlagshipOfferSection() {
   const reducedMotion = usePrefersReducedMotion();
+  const sectionRef = useRef(null);
+  const isSectionActiveRef = useRef(false);
   const [activeStage, setActiveStage] = useState(0);
+  const [isAnimationReady, setIsAnimationReady] = useState(false);
+  const [isSectionActive, setIsSectionActive] = useState(false);
+  const [hasAnimationStarted, setHasAnimationStarted] = useState(false);
+  const [playbackKey, setPlaybackKey] = useState(0);
+  const activeStageIndex = Math.min(activeStage, flagshipStages.length - 1);
+  const handleAnimationReady = useCallback(() => {
+    setIsAnimationReady(true);
+  }, []);
+  const restartAnimation = useCallback(() => {
+    setActiveStage(0);
+    setHasAnimationStarted(true);
+    setPlaybackKey((key) => key + 1);
+  }, []);
+
+  useEffect(() => {
+    const syncSectionActivity = (active) => {
+      if (isSectionActiveRef.current === active) return;
+      isSectionActiveRef.current = active;
+      setIsSectionActive(active);
+
+      if (active) {
+        restartAnimation();
+      }
+    };
+    const sectionContainsActivationLine = () => {
+      const section = sectionRef.current;
+      if (!section) return false;
+
+      const rect = section.getBoundingClientRect();
+      const activationLine = Math.min(window.innerHeight * 0.38, 320);
+      return rect.top <= activationLine && rect.bottom >= activationLine;
+    };
+    const handleActiveSection = (event) => {
+      syncSectionActivity(event.detail?.hash === "#oferta-insignia");
+    };
+
+    window.addEventListener("morphon:active-section", handleActiveSection);
+    syncSectionActivity(window.location.hash === "#oferta-insignia" || sectionContainsActivationLine());
+
+    return () => window.removeEventListener("morphon:active-section", handleActiveSection);
+  }, [restartAnimation]);
+
+  useEffect(() => {
+    if (!isAnimationReady || !isSectionActive || !hasAnimationStarted || reducedMotion) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setActiveStage((stage) => (Math.min(stage, flagshipStages.length - 1) + 1) % flagshipStages.length);
+    }, flagshipStageDurations[activeStageIndex]);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [activeStageIndex, hasAnimationStarted, isAnimationReady, isSectionActive, reducedMotion]);
 
   return (
-    <section className="flagship-offer scene-section" id="oferta-insignia">
+    <section className="flagship-offer scene-section" id="oferta-insignia" ref={sectionRef}>
       <SectionTransition />
       <HeroNoiseCanvas />
       <div className="flagship-offer__frame reveal scene-content">
@@ -1017,23 +1229,29 @@ function FlagshipOfferSection() {
         <div className="flagship-offer__layout">
           <div className="flagship-offer__copy">
             <h3 className="section-label">02 / Oferta Insignia</h3>
-            <h2>
+            <h2 className="flagship-offer__title">
               <span>Planeación</span>
               <span>Digital</span>
             </h2>
             <p className="flagship-offer__subtitle">Del diseño al entregable técnico desde un solo modelo.</p>
-            <p className="flagship-offer__text">
-              Desarrollamos modelos paramétricos BIM que conectan diseño, ingeniería, análisis,
-              cuantificación, documentación ejecutiva, planos de taller y coordinación técnica.
-            </p>
           </div>
           <div className="flagship-offer__visual" aria-label="Modelo técnico animado de Planeación Digital">
             <Suspense fallback={<div className="model-animation model-animation--loading">Modelo vivo</div>}>
-              <ParametricModelAnimation activeStage={activeStage} reducedMotion={reducedMotion} />
+              <ParametricModelAnimation
+                activeStage={activeStageIndex}
+                isPlaying={isSectionActive && hasAnimationStarted}
+                reducedMotion={reducedMotion}
+                restartKey={playbackKey}
+                onReady={handleAnimationReady}
+              />
             </Suspense>
           </div>
+          <p className="flagship-offer__text">
+            Desarrollamos modelos paramétricos BIM que conectan diseño, ingeniería, análisis,
+            cuantificación, documentación ejecutiva, planos de taller y coordinación técnica.
+          </p>
         </div>
-        <PipelineStepper stages={flagshipStages} activeIndex={activeStage} onSelect={setActiveStage} />
+        <PipelineStepper stages={flagshipStages} activeIndex={activeStageIndex} onSelect={setActiveStage} />
       </div>
     </section>
   );
@@ -1102,9 +1320,9 @@ function Contact() {
   const [sent, setSent] = useState(false);
 
     return (
-      <section className="section contact" id="contacto">
+      <section className="section contact scene-section" id="contacto">
         <SectionTransition />
-        <div className="contact__copy reveal">
+        <div className="contact__copy reveal scene-content">
         <h3 className="section-label">04 / Contacto</h3>
         <h2>TRAE UN PROYECTO COMPLEJO. MORPHON PUEDE CONVERTIRLO EN SISTEMA.</h2>
         <p>
@@ -1113,7 +1331,7 @@ function Contact() {
         </p>
       </div>
       <form
-        className="contact-form reveal"
+        className="contact-form reveal scene-content"
         onSubmit={(event) => {
           event.preventDefault();
           setSent(true);

@@ -2597,12 +2597,16 @@ textarea {
 .flagship-offer__layout {
   display: grid;
   grid-template-columns: minmax(320px, 0.82fr) minmax(520px, 1.18fr);
+  grid-template-areas:
+    "copy visual"
+    "description visual";
   gap: 52px;
   align-items: center;
   min-height: 0;
 }
 
 .flagship-offer__copy {
+  grid-area: copy;
   max-width: 560px;
 }
 
@@ -2621,6 +2625,10 @@ textarea {
   letter-spacing: 0;
 }
 
+.flagship-offer h2.flagship-offer__title {
+  font-size: 44.8px;
+}
+
 .flagship-offer h2 span {
   display: block;
 }
@@ -2636,6 +2644,7 @@ textarea {
 }
 
 .flagship-offer__text {
+  grid-area: description;
   max-width: 520px;
   margin: 28px 0 0;
   color: var(--offer-muted);
@@ -2646,6 +2655,7 @@ textarea {
 }
 
 .flagship-offer__visual {
+  grid-area: visual;
   min-width: 0;
   min-height: 460px;
 }
@@ -2735,18 +2745,18 @@ textarea {
   left: 18px;
   z-index: 5;
   display: grid;
-  gap: 6px;
-  color: var(--offer-muted);
+  color: var(--offer-green);
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 700;
-  line-height: 12px;
+  line-height: 1;
   text-transform: uppercase;
+  animation: model-readout-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .model-animation__readout strong {
-  color: var(--offer-green);
-  font-size: 12px;
+  color: inherit;
+  font-size: inherit;
 }
 
 .model-animation__sliders,
@@ -2765,6 +2775,7 @@ textarea {
   color: var(--offer-muted);
   font-family: var(--font-mono);
   pointer-events: none;
+  animation: model-panel-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .model-animation__sliders {
@@ -2962,6 +2973,31 @@ textarea {
   color: var(--offer-muted);
   font-family: var(--font-mono);
   pointer-events: none;
+  animation: model-panel-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes model-readout-enter {
+  from {
+    opacity: 0.34;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes model-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .model-animation__radiation-head {
@@ -3101,7 +3137,25 @@ textarea {
 }
 
 .model-animation__doc-legend {
+  gap: 5px;
+  padding: 12px;
+}
+
+.model-animation__doc-legend .model-animation__bim-layer {
   gap: 8px;
+  padding: 5px 0;
+}
+
+.model-animation__doc-legend .model-animation__bim-layer strong {
+  font-size: 8.5px;
+}
+
+.model-animation__doc-legend .model-animation__bim-layer small {
+  font-size: 6.8px;
+}
+
+.model-animation__doc-legend .model-animation__panel-title {
+  font-size: 8.5px;
 }
 
 .documentation-sheet {
@@ -3466,32 +3520,39 @@ textarea {
 .pipeline-stepper {
   display: grid;
   grid-template-columns:
-    minmax(0, 1fr) 28px
-    minmax(0, 1fr) 28px
-    minmax(0, 1fr) 28px
-    minmax(0, 1fr) 28px
-    minmax(0, 1fr) 28px
-    minmax(0, 1fr);
+    minmax(150px, 202px) minmax(28px, 1fr)
+    minmax(150px, 202px) minmax(28px, 1fr)
+    minmax(150px, 202px) minmax(28px, 1fr)
+    minmax(150px, 202px);
   align-items: stretch;
   gap: 0;
+  width: 100%;
+  max-width: 100%;
   padding-top: 20px;
   border-top: 1px solid rgba(125, 191, 255, 0.18);
 }
 
 .pipeline-step {
+  position: relative;
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr);
-  gap: 10px;
   align-items: center;
-  min-height: 62px;
-  padding: 10px;
+  min-height: 52px;
+  padding: 11px 38px 11px 14px;
   border: 1px solid rgba(125, 191, 255, 0.16);
   background: rgba(232, 246, 255, 0.045);
   color: var(--offer-muted);
   font-family: var(--font-mono);
   text-align: left;
   cursor: pointer;
-  transition: border-color 180ms ease, background 180ms ease, color 180ms ease;
+  transition:
+    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    background 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.pipeline-step > span:last-child {
+  min-width: 0;
 }
 
 .pipeline-step:hover,
@@ -3499,12 +3560,27 @@ textarea {
   border-color: rgba(49, 255, 92, 0.58);
   background: rgba(49, 255, 92, 0.07);
   color: var(--white);
+  animation: pipeline-card-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes pipeline-card-enter {
+  from {
+    opacity: 0.74;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 .pipeline-step__index {
+  position: absolute;
+  top: 9px;
+  right: 10px;
   color: var(--offer-blue);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
+  line-height: 1;
 }
 
 .pipeline-step strong,
@@ -3518,6 +3594,7 @@ textarea {
   font-weight: 800;
   line-height: 14px;
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .pipeline-step span span {
@@ -3530,7 +3607,7 @@ textarea {
 
 .pipeline-stepper__arrow {
   display: grid;
-  min-height: 62px;
+  min-height: 52px;
   place-items: center;
 }
 
@@ -3727,6 +3804,14 @@ textarea {
 }
 
 @media (max-width: 1180px) {
+  .flagship-offer {
+    padding-inline: 20px;
+  }
+
+  .flagship-offer__frame {
+    padding: 24px;
+  }
+
   .flagship-offer__layout {
     grid-template-columns: minmax(300px, 0.86fr) minmax(420px, 1.14fr);
     gap: 34px;
@@ -3746,6 +3831,23 @@ textarea {
 
   .model-animation__metrics {
     width: min(226px, 40%);
+  }
+
+  .pipeline-stepper {
+    grid-template-columns:
+      minmax(136px, 180px) minmax(16px, 1fr)
+      minmax(136px, 180px) minmax(16px, 1fr)
+      minmax(136px, 180px) minmax(16px, 1fr)
+      minmax(136px, 180px);
+  }
+
+  .pipeline-step {
+    min-height: 48px;
+    padding: 10px 34px 10px 12px;
+  }
+
+  .pipeline-stepper__arrow {
+    min-height: 48px;
   }
 
   .services-grid {
@@ -3768,6 +3870,18 @@ textarea {
   .flagship-offer__layout,
   .services-section__intro {
     grid-template-columns: 1fr;
+  }
+
+  .flagship-offer__layout {
+    grid-template-areas:
+      "copy"
+      "visual"
+      "description";
+    gap: 28px;
+  }
+
+  .flagship-offer__text {
+    margin-top: 0;
   }
 
   .flagship-offer__visual,
@@ -3815,44 +3929,54 @@ textarea {
 @media (max-width: 760px) {
   .flagship-offer,
   .services-section {
-    padding: 88px 20px 46px;
+    padding: 78px 20px 46px;
   }
 
   .flagship-offer__frame {
-    padding: 24px 20px;
+    gap: 20px;
+    padding: 20px;
   }
 
   .flagship-offer h2 {
-    font-size: 40px;
+    margin-top: 14px;
+    font-size: clamp(32px, 9vw, 40px);
   }
 
   .flagship-offer__subtitle {
+    max-width: 320px;
+    margin-top: 18px;
     font-size: 15px;
     line-height: 22px;
+  }
+
+  .flagship-offer__text {
+    max-width: none;
+    font-size: 12.5px;
+    line-height: 20px;
   }
 
   .flagship-offer__visual,
   .model-animation,
   .model-animation--loading,
   .model-animation__fallback {
-    min-height: 620px;
+    min-height: 500px;
   }
 
   .model-animation--documentation {
-    min-height: 700px;
+    min-height: 620px;
   }
 
   .model-animation__viewport {
     right: 14px;
-    bottom: 260px;
+    bottom: 172px;
   }
 
   .model-animation--analysis .model-animation__viewport {
-    bottom: 318px;
+    bottom: 238px;
   }
 
   .model-animation--documentation .model-animation__viewport {
-    bottom: 336px;
+    bottom: 272px;
   }
 
   .documentation-sheet--plan {
@@ -3877,7 +4001,7 @@ textarea {
   .model-animation__metrics {
     top: auto;
     right: 14px;
-    bottom: 202px;
+    bottom: 102px;
     left: 14px;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     width: auto;
@@ -3888,7 +4012,7 @@ textarea {
   .model-animation--analysis .model-animation__metrics {
     top: auto;
     right: 14px;
-    bottom: 306px;
+    bottom: 228px;
     left: 14px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     width: auto;
@@ -3900,7 +4024,7 @@ textarea {
     bottom: 14px;
     left: 14px;
     width: auto;
-    min-height: 278px;
+    min-height: 212px;
     padding: 10px;
   }
 
@@ -4154,21 +4278,62 @@ textarea {
     display: none;
   }
 
+  .site-header {
+    inset: 24px 0 auto;
+    padding: 0 24px;
+  }
+
+  .hero {
+    min-height: 100svh;
+    padding: 92px 20px 70px;
+  }
+
   .hero__inner {
-    padding-top: 17vh;
+    display: block;
+    min-height: auto;
+    padding-top: clamp(44px, 7svh, 62px);
   }
 
   .hero-kicker {
-    font-size: 34px;
-    line-height: 40px;
+    font-size: clamp(30px, 8.8vw, 34px);
+    line-height: 1.12;
   }
 
   .hero-title {
-    top: 43vh;
-    font-size: 14px;
-    line-height: 20px;
+    position: relative;
+    top: auto;
+    left: auto;
+    width: min(100%, 340px);
+    margin: 24px auto 0;
+    font-size: clamp(12.5px, 3.45vw, 14px);
+    line-height: 1.46;
     white-space: normal;
     text-align: center;
+    transform: none;
+  }
+
+  .particle-dome {
+    bottom: 28px;
+    width: 158vw;
+    height: min(360px, 94vw);
+    opacity: 0.62;
+  }
+
+  .hero__footer {
+    inset: auto 24px 22px;
+    align-items: center;
+    font-size: 11px;
+    line-height: 16px;
+  }
+
+  .hero__social {
+    gap: 6px;
+  }
+
+  .hero__social a {
+    width: 34px;
+    height: 34px;
+    background: rgba(246, 249, 252, 0.22);
   }
 
   .hero__copy {
@@ -4190,6 +4355,149 @@ textarea {
   .contact h2 {
     font-size: 21.6px;
     line-height: 24.48px;
+  }
+
+  .section,
+  .contact {
+    padding: 76px 24px 48px;
+  }
+
+  .services-section {
+    padding: 76px 20px 48px;
+  }
+
+  .services-section__inner {
+    gap: 24px;
+  }
+
+  .services-section__intro h2 {
+    font-size: 24px;
+    line-height: 28px;
+  }
+
+  .service-card {
+    min-height: 220px;
+    padding: 16px;
+  }
+
+  .flagship-offer {
+    padding: 70px 18px 44px;
+  }
+
+  .flagship-offer__frame {
+    padding: 18px;
+  }
+
+  .flagship-offer__layout {
+    gap: 16px;
+  }
+
+  .flagship-offer .section-label {
+    margin-bottom: 0;
+  }
+
+  .flagship-offer h2.flagship-offer__title {
+    font-size: clamp(30px, 8.9vw, 36px);
+    line-height: 0.98;
+  }
+
+  .flagship-offer__subtitle {
+    margin-top: 16px;
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .flagship-offer__text {
+    font-size: 12px;
+    line-height: 19px;
+  }
+
+  .flagship-offer__visual,
+  .model-animation,
+  .model-animation--loading,
+  .model-animation__fallback {
+    min-height: 440px;
+  }
+
+  .model-animation {
+    --model-frame-inset: 12px;
+  }
+
+  .model-animation--documentation {
+    min-height: 560px;
+  }
+
+  .model-animation__readout {
+    top: 14px;
+    left: 14px;
+    font-size: 11px;
+  }
+
+  .model-animation__viewport {
+    top: 36px;
+    right: 12px;
+    bottom: 94px;
+    left: 12px;
+  }
+
+  .model-animation--analysis .model-animation__viewport {
+    bottom: 204px;
+  }
+
+  .model-animation--bim .model-animation__viewport {
+    bottom: 160px;
+  }
+
+  .model-animation--documentation .model-animation__viewport {
+    bottom: 224px;
+  }
+
+  .model-animation:not(.model-animation--analysis):not(.model-animation--bim):not(.model-animation--documentation) .model-animation__sliders,
+  .model-animation--analysis .model-animation__metrics,
+  .model-animation--bim .model-animation__metrics,
+  .model-animation--documentation .model-animation__metrics {
+    display: none;
+  }
+
+  .model-animation__metrics {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .model-animation__sliders {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    padding: 8px;
+    gap: 5px;
+  }
+
+  .model-animation__bim-layer {
+    padding: 5px 0;
+  }
+
+  .model-animation__radiation {
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    min-height: 178px;
+  }
+
+  .model-animation__metric {
+    min-height: 32px;
+    padding: 6px;
+  }
+
+  .model-animation__metric span {
+    font-size: 6.8px;
+  }
+
+  .model-animation__metric strong {
+    font-size: 8.5px;
   }
 
   .solution-visual {
@@ -4230,6 +4538,10 @@ textarea {
 
   .contact-form {
     padding: 20px;
+  }
+
+  .contact {
+    gap: 28px;
   }
 
   .footer {

@@ -14,30 +14,34 @@ import {
   MeshBasicMaterial,
   OrthographicCamera,
   PerspectiveCamera,
+  Plane,
+  Quaternion,
   Scene,
   SphereGeometry,
   Sprite,
   SpriteMaterial,
+  Vector3,
   WebGLRenderer,
 } from "three";
 
-const MAX_LEVELS = 28;
+const MAX_LEVELS = 53;
 const MIN_LEVELS = 12;
 const SEGMENTS = 24;
 const CARDINAL_SEGMENTS = [0, SEGMENTS / 4, SEGMENTS / 2, (SEGMENTS * 3) / 4].map(Math.round);
 const MAP_ROWS = 8;
 const MAP_COLS = 12;
-const DESIGN_LOOP_DURATION = 10500;
-const ANALYSIS_LOOP_DURATION = 14000;
-const BIM_LOOP_DURATION = 11000;
-const DOCUMENTATION_LOOP_DURATION = 12000;
+const DESIGN_LOOP_DURATION = 8000;
+const ANALYSIS_LOOP_DURATION = 8000;
+const BIM_LOOP_DURATION = 8000;
+const DOCUMENTATION_LOOP_DURATION = 8000;
 const BASE_Y = -1.52;
 const MAX_SCENE_HEIGHT = 3.58;
 const MIN_FLOOR_HEIGHT = 3.2;
-const MAX_FLOOR_HEIGHT = 3.6;
-const MAX_TOTAL_HEIGHT = MAX_LEVELS * MAX_FLOOR_HEIGHT;
-const STAGE_KEYS = ["design", "analysis", "bim", "documentation", "workshop", "assembly"];
-const STAGE_LABELS = ["DISEÑO", "ANÁLISIS", "BIM", "DOCUMENTACIÓN", "TALLER", "MONTAJE"];
+const MAX_FLOOR_HEIGHT = 4.5;
+const SCENE_REFERENCE_FLOOR_HEIGHT = 3.6;
+const MAX_TOTAL_HEIGHT = MAX_LEVELS * SCENE_REFERENCE_FLOOR_HEIGHT;
+const STAGE_KEYS = ["design", "analysis", "bim", "documentation"];
+const STAGE_LABELS = ["DISEÑO", "ANÁLISIS", "BIM", "DOCUMENTACIÓN"];
 const SUN_PATH_LINE_CAPACITY = 2200;
 const SUN_BASE_Y = BASE_Y + 0.06;
 const SUN_CENTER_X = 0;
@@ -56,14 +60,15 @@ const DOC_PLAN_LINE_CAPACITY = 260;
 const DOC_ELEVATION_LINE_CAPACITY = 620;
 const DOC_SECTION_LINE_CAPACITY = 720;
 const DOC_FRAME_LINE_CAPACITY = 12;
+const PLAN_METERS_PER_UNIT = 18;
 
 const DESIGN_SLIDERS = [
   { key: "floorHeight", label: "ALTURA", min: MIN_FLOOR_HEIGHT, max: MAX_FLOOR_HEIGHT, unit: " m", decimals: 1 },
   { key: "levels", label: "NIVELES", min: MIN_LEVELS, max: MAX_LEVELS, unit: "", decimals: 0 },
-  { key: "torsion", label: "TORSIÓN", min: 0, max: 18, unit: "°", decimals: 0 },
-  { key: "facade", label: "DENSIDAD FACHADA", min: 32, max: 68, unit: "%", decimals: 0 },
-  { key: "footprint", label: "HUELLA", min: 86, max: 108, unit: "%", decimals: 0 },
-  { key: "profile", label: "PERFIL", min: 6, max: 24, unit: "%", decimals: 0 },
+  { key: "torsion", label: "TORSION", min: 0, max: 32, unit: "°", decimals: 0 },
+  { key: "flow", label: "FLUIDEZ", min: 0, max: 100, unit: "%", decimals: 0 },
+  { key: "waist", label: "ENSANCHE", min: 0, max: 100, unit: "%", decimals: 0 },
+  { key: "crown", label: "CORONA", min: 0, max: 100, unit: "%", decimals: 0 },
 ];
 
 const HEAT_STOPS = [
@@ -193,7 +198,7 @@ function heatColorCss(value) {
 }
 
 function getDesignParams(phase, reducedMotion) {
-  const parameterProgress = reducedMotion ? 1 : smoothstep(0.08, 0.78, phase);
+  const parameterProgress = reducedMotion ? 1 : smoothstep(0.06, 1, phase);
   const profilePulse = reducedMotion ? 1 : parameterProgress * (0.94 + Math.sin(phase * Math.PI * 2) * 0.06);
   const floorHeight = lerp(MIN_FLOOR_HEIGHT, MAX_FLOOR_HEIGHT, parameterProgress);
   const levels = lerp(MIN_LEVELS, MAX_LEVELS, parameterProgress);
@@ -204,10 +209,15 @@ function getDesignParams(phase, reducedMotion) {
     floorHeight,
     levels,
     totalHeight,
-    torsion: lerp(0, 18, parameterProgress),
-    facade: lerp(32, 68, parameterProgress),
-    footprint: lerp(0.86, 1.08, profilePulse),
-    profile: lerp(0.06, 0.24, parameterProgress),
+    torsion: lerp(0, 30, parameterProgress),
+    facade: lerp(38, 72, parameterProgress),
+    footprint: lerp(0.84, 1.02, profilePulse),
+    profile: lerp(0.02, 0.08, parameterProgress),
+    flow: lerp(0, 0.34, parameterProgress),
+    waist: lerp(0, 0.72, parameterProgress),
+    crown: lerp(0, 0.32, parameterProgress),
+    lean: lerp(0, 0.14, parameterProgress),
+    asymmetry: lerp(0, 0.16, parameterProgress),
   };
 }
 
@@ -224,12 +234,12 @@ function getDesignSequence(phase, reducedMotion) {
   }
 
   return {
-    fade: 1 - smoothstep(0.94, 1, phase),
-    footprint: smoothstep(0.02, 0.14, phase),
-    core: smoothstep(0.11, 0.26, phase),
-    plates: smoothstep(0.22, 0.46, phase),
-    ribs: smoothstep(0.38, 0.58, phase),
-    guides: smoothstep(0.46, 0.66, phase),
+    fade: 1,
+    footprint: smoothstep(0.04, 0.3, phase),
+    core: smoothstep(0.18, 0.56, phase),
+    plates: smoothstep(0.34, 0.8, phase),
+    ribs: smoothstep(0.52, 0.96, phase),
+    guides: smoothstep(0.68, 1, phase),
   };
 }
 
@@ -246,12 +256,12 @@ function getAnalysisSequence(phase, reducedMotion) {
   }
 
   return {
-    path: smoothstep(0.07, 0.18, phase),
-    sun: smoothstep(0.13, 0.2, phase),
-    radiation: smoothstep(0.16, 0.24, phase),
-    map: smoothstep(0.22, 0.3, phase),
-    travel: smoothstep(0.28, 0.78, phase),
-    fade: 1 - smoothstep(0.94, 1, phase),
+    path: lerp(0.62, 1, smoothstep(0, 0.1, phase)),
+    sun: lerp(0.55, 1, smoothstep(0, 0.12, phase)),
+    radiation: lerp(0.42, 1, smoothstep(0, 0.18, phase)),
+    map: lerp(0.42, 1, smoothstep(0, 0.2, phase)),
+    travel: smoothstep(0.02, 0.78, phase),
+    fade: 1,
   };
 }
 
@@ -266,9 +276,9 @@ function getBimSequence(phase, reducedMotion) {
   }
 
   return {
-    slabs: smoothstep(0.04, 0.26, phase),
-    structure: smoothstep(0.18, 0.42, phase),
-    glazing: smoothstep(0.34, 0.62, phase),
+    slabs: lerp(0.36, 1, smoothstep(0, 0.22, phase)),
+    structure: lerp(0.18, 1, smoothstep(0, 0.34, phase)),
+    glazing: lerp(0.16, 1, smoothstep(0, 0.44, phase)),
     coordination: 0.72 + Math.sin(phase * Math.PI * 2) * 0.18,
   };
 }
@@ -294,20 +304,51 @@ function getAnalysisState(phase, reducedMotion) {
   };
 }
 
+function towerCenter(t, params) {
+  const lean = params.lean || 0;
+
+  return {
+    x: lean * (Math.sin(t * Math.PI * 0.92) * 0.28 - smoothstep(0.72, 1, t) * 0.06),
+    z: lean * (Math.sin(t * Math.PI * 1.3 - 0.7) * 0.12 + smoothstep(0.58, 1, t) * 0.13),
+  };
+}
+
 function towerPoint(level, segment, params) {
   const levelCount = Math.max(1, Math.round(params.levels));
   const t = clamp(level / levelCount);
-  const angle = (segment / SEGMENTS) * Math.PI * 2 + (params.torsion * Math.PI * t) / 180;
+  const baseAngle = (segment / SEGMENTS) * Math.PI * 2;
+  const twistProgress = 0.16 * t + 0.84 * smoothstep(0, 1, t);
+  const flow = params.flow || 0;
+  const angle = baseAngle + (params.torsion * Math.PI * twistProgress) / 180 + Math.sin(t * Math.PI * 1.18) * flow * 0.035;
   const sceneHeight = MAX_SCENE_HEIGHT * (params.totalHeight / MAX_TOTAL_HEIGHT);
-  const taper = params.profile * t;
-  const shoulder = 1 + Math.sin(t * Math.PI) * 0.045;
-  const radiusX = params.footprint * shoulder * (1 - taper);
-  const radiusZ = params.footprint * 0.68 * (1 - taper * 0.72);
+  const taper = params.profile * (0.24 * t + 0.76 * t * t);
+  const vaseAmount = params.waist || 0;
+  const baseContraction = 1 - vaseAmount * (1 - smoothstep(0.04, 0.42, t)) * 0.32;
+  const belly = 1 + vaseAmount * Math.sin(smoothstep(0.08, 0.86, t) * Math.PI) * 0.18;
+  const upperContraction = 1 - vaseAmount * smoothstep(0.62, 1, t) * 0.24;
+  const crownLip = 1 + (params.crown || 0) * smoothstep(0.82, 1, t) * 0.06;
+  const vaseProfile = baseContraction * belly * upperContraction * crownLip;
+  const shoulder = 1 + Math.sin(t * Math.PI) * (0.02 + flow * 0.03);
+  const asymmetry = params.asymmetry || 0;
+  const perimeterWave =
+    1 +
+    flow *
+      (Math.sin(baseAngle * 2.0 - t * 2.25) * 0.035 +
+        Math.sin(baseAngle * 3.0 + t * 3.2) * 0.02);
+  const asymmetricPull =
+    1 +
+    asymmetry *
+      (Math.cos(baseAngle - 0.82) * 0.035 +
+        Math.sin(baseAngle + t * Math.PI * 1.45) * 0.025);
+  const localOval = 0.58 + flow * Math.sin(t * Math.PI * 1.06 + 0.4) * 0.012;
+  const radiusX = params.footprint * vaseProfile * shoulder * perimeterWave * asymmetricPull * (1 - taper * 0.34);
+  const radiusZ = params.footprint * localOval * vaseProfile * shoulder * perimeterWave * (1 - taper * 0.18);
+  const center = towerCenter(t, params);
 
   return {
-    x: Math.cos(angle) * radiusX,
+    x: center.x + Math.cos(angle) * radiusX,
     y: BASE_Y + sceneHeight * t,
-    z: Math.sin(angle) * radiusZ,
+    z: center.z + Math.sin(angle) * radiusZ,
   };
 }
 
@@ -328,22 +369,38 @@ function offsetPoint(point, normal, distance) {
 }
 
 function offsetTowerPoint(level, segment, params, distance = 0, yOffset = 0) {
+  const levelCount = Math.max(1, Math.round(params.levels));
+  const t = clamp(level / levelCount);
   const point = towerPoint(level, segment, params);
-  const length = Math.hypot(point.x, point.z) || 1;
+  const center = towerCenter(t, params);
+  const x = point.x - center.x;
+  const z = point.z - center.z;
+  const length = Math.hypot(x, z) || 1;
 
   return {
-    x: point.x + (point.x / length) * distance,
+    x: point.x + (x / length) * distance,
     y: point.y + yOffset,
-    z: point.z + (point.z / length) * distance,
+    z: point.z + (z / length) * distance,
   };
 }
 
 function panelNormal(segment, level, params) {
   const levelCount = Math.max(1, Math.round(params.levels));
   const vertical = clamp((level + 0.5) / levelCount);
-  const angle = ((segment + 0.5) / SEGMENTS) * Math.PI * 2 + ((params.torsion * Math.PI) / 180) * vertical;
+  const current = towerPoint(level + 0.5, segment, params);
+  const next = towerPoint(level + 0.5, (segment + 1) % SEGMENTS, params);
+  const center = towerCenter(vertical, params);
+  const tangent = { x: next.x - current.x, z: next.z - current.z };
+  const tangentLength = Math.hypot(tangent.x, tangent.z) || 1;
+  const midpoint = { x: (current.x + next.x) / 2, z: (current.z + next.z) / 2 };
+  const radial = { x: midpoint.x - center.x, z: midpoint.z - center.z };
+  let normal = { x: tangent.z / tangentLength, z: -tangent.x / tangentLength };
 
-  return { x: Math.cos(angle), z: Math.sin(angle) };
+  if (normal.x * radial.x + normal.z * radial.z < 0) {
+    normal = { x: -normal.x, z: -normal.z };
+  }
+
+  return normal;
 }
 
 function panelTangent(level, segment, params) {
@@ -359,8 +416,7 @@ function panelTangent(level, segment, params) {
 function getPanelRadiation(level, segment, params, analysis) {
   const levelCount = Math.max(1, Math.round(params.levels));
   const vertical = clamp((level + 0.5) / levelCount);
-  const normalAngle = ((segment + 0.5) / SEGMENTS) * Math.PI * 2 + ((params.torsion * Math.PI) / 180) * vertical;
-  const normal = { x: Math.cos(normalAngle), z: Math.sin(normalAngle) };
+  const normal = panelNormal(segment, level, params);
   const dot = Math.max(0, normal.x * analysis.sunDirection.x + normal.z * analysis.sunDirection.z);
   const altitudeFactor = clamp(Math.sin((analysis.altitude * Math.PI) / 180), 0.1, 1);
   const verticalFactor = 0.68 + vertical * 0.28;
@@ -432,8 +488,8 @@ function updateBimFloorSlabs(geometry, params, visibleLevels, progress) {
 function updateBimGlazing(geometry, params, visibleLevels, progress) {
   const positions = geometry.attributes.position.array;
   const colors = geometry.attributes.color.array;
-  const glazingBase = new Color(0xff4a2d);
-  const glazingHot = new Color(0xffb22e);
+  const glazingBase = new Color(0x8f5a3a);
+  const glazingHot = new Color(0xd7a064);
   const panelSideGap = 0.16;
   const panelVerticalGap = 0.18;
   let offset = 0;
@@ -734,8 +790,12 @@ function updateSunRays(geometry, analysis, progress) {
 function getDesignHudState(params) {
   const activeLevels = Math.round(params.levels);
   const totalHeight = Math.round(params.totalHeight);
-  const area = lerp(8400, 24600, params.parameterProgress);
-  const volume = area * (params.totalHeight / 3.8);
+  const grossArea = lerp(8400, 24600, params.parameterProgress);
+  const plan = getDocumentationPlanData(params);
+  const footprintWidth = (plan.maxX - plan.minX) * PLAN_METERS_PER_UNIT;
+  const footprintDepth = (plan.maxZ - plan.minZ) * PLAN_METERS_PER_UNIT;
+  const typicalFloorArea = Math.PI * (footprintWidth / 2) * (footprintDepth / 2);
+  const panelCount = activeLevels * SEGMENTS;
 
   return {
     mode: "design",
@@ -743,17 +803,17 @@ function getDesignHudState(params) {
       floorHeight: params.floorHeight,
       levels: activeLevels,
       torsion: params.torsion,
-      facade: params.facade,
-      footprint: params.footprint * 100,
-      profile: params.profile * 100,
+      flow: params.flow * 100,
+      waist: params.waist * 100,
+      crown: params.crown * 100,
     },
     metrics: [
       ["NIVELES", activeLevels],
       ["ALTURA TOTAL", `${totalHeight} m`],
-      ["ÁREA", `${Math.round(area).toLocaleString("es-MX")} m²`],
-      ["TORSIÓN", `${Math.round(params.torsion)}°`],
-      ["FACHADA", `${Math.round(params.facade)}%`],
-      ["VOLUMEN", `${Math.round(volume).toLocaleString("es-MX")} m³`],
+      ["ÁREA GFA", `${Math.round(grossArea).toLocaleString("es-MX")} m²`],
+      ["ALTURA NIVEL", `${params.floorHeight.toFixed(1)} m`],
+      ["HUELLA TIPO", `${Math.round(typicalFloorArea).toLocaleString("es-MX")} m²`],
+      ["PÁNELES", panelCount.toLocaleString("es-MX")],
     ],
   };
 }
@@ -811,9 +871,9 @@ function getBimHudState(params, phase, reducedMotion) {
     mode: "bim",
     metrics: [
       ["LOSAS", `${levels + 1}`],
-      ["ESTRUCTURA", `${SEGMENTS} ejes`],
-      ["VIDRIO", `${levels * SEGMENTS} panos`],
-      ["CORE", "1 nucleo"],
+      ["DISCIPLINAS", "4 modelos"],
+      ["VIDRIO", `${levels * SEGMENTS} páneles`],
+      ["NÚCLEO", "1 núcleo"],
       ["CLASH", `${clashCount} alertas`],
       ["LOD", "300"],
     ],
@@ -826,9 +886,9 @@ function getDocumentationHudState(params) {
     metrics: [
       ["PLANOS", "12"],
       ["ELEVACIONES", "4"],
-      ["COTAS", "38"],
+      ["DETALLES", "18"],
       ["NIVELES", `${Math.round(params.levels)}`],
-      ["LAMINA", "A-301"],
+      ["LÁMINA", "A-301"],
       ["ESCALA", "1:100"],
     ],
   };
@@ -954,10 +1014,10 @@ function updateDocumentationFrame(geometry, plane = "xz") {
   const state = { offset: 0, count: 0 };
   const corners = plane === "xy"
     ? [
-      { x: -2.18, y: -1.72, z: -0.02 },
-      { x: 2.18, y: -1.72, z: -0.02 },
-      { x: 2.18, y: 2.22, z: -0.02 },
-      { x: -2.18, y: 2.22, z: -0.02 },
+      { x: -2.36, y: -1.88, z: -0.02 },
+      { x: 2.36, y: -1.88, z: -0.02 },
+      { x: 2.36, y: 3.12, z: -0.02 },
+      { x: -2.36, y: 3.12, z: -0.02 },
     ]
     : [
       { x: -2.08, y: 0, z: -1.46 },
@@ -970,6 +1030,54 @@ function updateDocumentationFrame(geometry, plane = "xz") {
   setLineCount(geometry, state.count);
 }
 
+function updateSectionCutPlaneOutline(geometry) {
+  const positions = geometry.attributes.position.array;
+  const state = { offset: 0, count: 0 };
+  [-0.028, 0, 0.028].forEach((x) => {
+    addRectangleLines(positions, state, [
+      { x, y: -0.5, z: -0.5 },
+      { x, y: 0.5, z: -0.5 },
+      { x, y: 0.5, z: 0.5 },
+      { x, y: -0.5, z: 0.5 },
+    ]);
+  });
+  setLineCount(geometry, state.count);
+}
+
+function getDocumentationPlanData(params) {
+  const level = Math.round(Math.max(1, params.levels) * 0.5);
+  const points = Array.from({ length: SEGMENTS }, (_, segment) => toPlanPoint(towerPoint(level, segment, params), 0.02));
+  const minX = Math.min(...points.map((point) => point.x));
+  const maxX = Math.max(...points.map((point) => point.x));
+  const minZ = Math.min(...points.map((point) => point.z));
+  const maxZ = Math.max(...points.map((point) => point.z));
+  const width = maxX - minX;
+  const depth = maxZ - minZ;
+  const centerX = (minX + maxX) / 2;
+  const centerZ = (minZ + maxZ) / 2;
+
+  return {
+    level,
+    points,
+    minX,
+    maxX,
+    minZ,
+    maxZ,
+    centerX,
+    centerZ,
+    gridX: [-0.5, -0.25, 0, 0.25, 0.5].map((factor) => centerX + width * factor),
+    gridZ: [-0.5, -0.25, 0, 0.25, 0.5].map((factor) => centerZ + depth * factor),
+    gridMinX: minX - 0.3,
+    gridMaxX: maxX + 0.3,
+    gridMinZ: minZ - 0.26,
+    gridMaxZ: maxZ + 0.26,
+    dimX: maxX + 0.38,
+    dimZ: maxZ + 0.34,
+    widthLabel: `${(width * PLAN_METERS_PER_UNIT).toFixed(1)} M`,
+    depthLabel: `${(depth * PLAN_METERS_PER_UNIT).toFixed(1)} M`,
+  };
+}
+
 function updateDocumentationPlan(gridGeometry, modelGeometry, dimGeometry, params, sequence) {
   const gridPositions = gridGeometry.attributes.position.array;
   const modelPositions = modelGeometry.attributes.position.array;
@@ -977,42 +1085,44 @@ function updateDocumentationPlan(gridGeometry, modelGeometry, dimGeometry, param
   const gridState = { offset: 0, count: 0 };
   const modelState = { offset: 0, count: 0 };
   const dimState = { offset: 0, count: 0 };
-  const gridX = [-1.2, -0.6, 0, 0.6, 1.2];
-  const gridZ = [-0.78, -0.39, 0, 0.39, 0.78];
+  const plan = getDocumentationPlanData(params);
 
-  gridX.forEach((x) => {
-    addLineToState(gridPositions, gridState, { x, y: 0, z: -1.05 }, { x, y: 0, z: 1.05 });
-    addCircleLines(gridPositions, gridState, { x, y: 0, z: -1.2 }, 0.04);
+  plan.gridX.forEach((x) => {
+    addLineToState(gridPositions, gridState, { x, y: 0, z: plan.gridMinZ }, { x, y: 0, z: plan.gridMaxZ });
+    addCircleLines(gridPositions, gridState, { x, y: 0, z: plan.gridMinZ - 0.16 }, 0.035);
   });
-  gridZ.forEach((z) => {
-    addLineToState(gridPositions, gridState, { x: -1.48, y: 0, z }, { x: 1.48, y: 0, z });
-    addCircleLines(gridPositions, gridState, { x: -1.68, y: 0, z }, 0.04);
+  plan.gridZ.forEach((z) => {
+    addLineToState(gridPositions, gridState, { x: plan.gridMinX, y: 0, z }, { x: plan.gridMaxX, y: 0, z });
+    addCircleLines(gridPositions, gridState, { x: plan.gridMinX - 0.16, y: 0, z }, 0.035);
   });
 
   for (let segment = 0; segment < SEGMENTS; segment += 1) {
     addLineToState(
       modelPositions,
       modelState,
-      toPlanPoint(towerPoint(0, segment, params), 0.02),
-      toPlanPoint(towerPoint(0, (segment + 1) % SEGMENTS, params), 0.02),
+      plan.points[segment],
+      plan.points[(segment + 1) % SEGMENTS],
     );
   }
 
   const core = [
-    { x: -0.24, y: 0.03, z: -0.17 },
-    { x: 0.24, y: 0.03, z: -0.17 },
-    { x: 0.24, y: 0.03, z: 0.17 },
-    { x: -0.24, y: 0.03, z: 0.17 },
+    { x: plan.centerX - 0.22, y: 0.03, z: plan.centerZ - 0.16 },
+    { x: plan.centerX + 0.22, y: 0.03, z: plan.centerZ - 0.16 },
+    { x: plan.centerX + 0.22, y: 0.03, z: plan.centerZ + 0.16 },
+    { x: plan.centerX - 0.22, y: 0.03, z: plan.centerZ + 0.16 },
   ];
   addRectangleLines(modelPositions, modelState, core);
 
-  addLineToState(dimPositions, dimState, { x: -1.18, y: 0.04, z: 1.18 }, { x: 1.18, y: 0.04, z: 1.18 });
-  addLineToState(dimPositions, dimState, { x: -1.18, y: 0.04, z: 1.09 }, { x: -1.18, y: 0.04, z: 1.27 });
-  addLineToState(dimPositions, dimState, { x: 1.18, y: 0.04, z: 1.09 }, { x: 1.18, y: 0.04, z: 1.27 });
-  addLineToState(dimPositions, dimState, { x: 1.54, y: 0.04, z: -0.82 }, { x: 1.54, y: 0.04, z: 0.82 });
-  addLineToState(dimPositions, dimState, { x: 1.44, y: 0.04, z: -0.82 }, { x: 1.64, y: 0.04, z: -0.82 });
-  addLineToState(dimPositions, dimState, { x: 1.44, y: 0.04, z: 0.82 }, { x: 1.64, y: 0.04, z: 0.82 });
-  addLineToState(dimPositions, dimState, { x: 1.72, y: 0.04, z: -1.12 }, { x: 1.72, y: 0.04, z: -0.82 });
+  addLineToState(dimPositions, dimState, { x: plan.minX, y: 0.04, z: plan.dimZ }, { x: plan.maxX, y: 0.04, z: plan.dimZ });
+  addLineToState(dimPositions, dimState, { x: plan.minX, y: 0.04, z: plan.dimZ - 0.09 }, { x: plan.minX, y: 0.04, z: plan.dimZ + 0.09 });
+  addLineToState(dimPositions, dimState, { x: plan.maxX, y: 0.04, z: plan.dimZ - 0.09 }, { x: plan.maxX, y: 0.04, z: plan.dimZ + 0.09 });
+  addLineToState(dimPositions, dimState, { x: plan.minX, y: 0.04, z: plan.maxZ }, { x: plan.minX, y: 0.04, z: plan.dimZ });
+  addLineToState(dimPositions, dimState, { x: plan.maxX, y: 0.04, z: plan.maxZ }, { x: plan.maxX, y: 0.04, z: plan.dimZ });
+  addLineToState(dimPositions, dimState, { x: plan.dimX, y: 0.04, z: plan.minZ }, { x: plan.dimX, y: 0.04, z: plan.maxZ });
+  addLineToState(dimPositions, dimState, { x: plan.dimX - 0.09, y: 0.04, z: plan.minZ }, { x: plan.dimX + 0.09, y: 0.04, z: plan.minZ });
+  addLineToState(dimPositions, dimState, { x: plan.dimX - 0.09, y: 0.04, z: plan.maxZ }, { x: plan.dimX + 0.09, y: 0.04, z: plan.maxZ });
+  addLineToState(dimPositions, dimState, { x: plan.maxX, y: 0.04, z: plan.minZ }, { x: plan.dimX, y: 0.04, z: plan.minZ });
+  addLineToState(dimPositions, dimState, { x: plan.maxX, y: 0.04, z: plan.maxZ }, { x: plan.dimX, y: 0.04, z: plan.maxZ });
 
   setLineCount(gridGeometry, Math.round(gridState.count * sequence.plan));
   setLineCount(modelGeometry, Math.round(modelState.count * sequence.plan));
@@ -1025,7 +1135,13 @@ function updateDocumentationElevation(modelGeometry, dimGeometry, params, visibl
   const modelState = { offset: 0, count: 0 };
   const dimState = { offset: 0, count: 0 };
   const levelCount = Math.max(1, visibleLevels);
-  const levelStep = Math.max(1, Math.round(levelCount / 7));
+  const datumLevels = [];
+  for (let level = 0; level < levelCount; level += 10) {
+    datumLevels.push(level);
+  }
+  if (datumLevels[datumLevels.length - 1] !== levelCount) {
+    datumLevels.push(levelCount);
+  }
   const minY = BASE_Y;
   const maxY = towerPoint(levelCount, 0, params).y;
   const envelopes = [];
@@ -1073,19 +1189,19 @@ function updateDocumentationElevation(modelGeometry, dimGeometry, params, visibl
     { x: coreLeft, y: coreTop, z: 0.02 },
   ]);
 
-  for (let level = levelStep; level < levelCount; level += levelStep) {
+  datumLevels.slice(1, -1).forEach((level) => {
     const y = towerPoint(level, 0, params).y;
     addLineToState(modelPositions, modelState, { x: coreLeft, y, z: 0.022 }, { x: coreRight, y, z: 0.022 });
-  }
+  });
 
   addLineToState(dimPositions, dimState, { x: -1.62, y: minY, z: 0.03 }, { x: -1.62, y: maxY, z: 0.03 });
   addLineToState(dimPositions, dimState, { x: -1.72, y: minY, z: 0.03 }, { x: -1.52, y: minY, z: 0.03 });
   addLineToState(dimPositions, dimState, { x: -1.72, y: maxY, z: 0.03 }, { x: -1.52, y: maxY, z: 0.03 });
 
-  for (let level = 0; level <= levelCount; level += levelStep) {
+  datumLevels.forEach((level) => {
     const y = towerPoint(level, 0, params).y;
-    addLineToState(dimPositions, dimState, { x: 0.98, y, z: 0.03 }, { x: 1.72, y, z: 0.03 });
-  }
+    addLineToState(dimPositions, dimState, { x: 1.06, y, z: 0.03 }, { x: 1.72, y, z: 0.03 });
+  });
 
   setLineCount(modelGeometry, Math.round(modelState.count * sequence.elevation));
   setLineCount(dimGeometry, Math.round(dimState.count * sequence.elevationDims));
@@ -1207,6 +1323,19 @@ function updateDocumentationCameras(view, width, height, fitWidth, fitHeight, pa
   view.camera.updateProjectionMatrix();
 }
 
+const sectionClipPoint = new Vector3();
+const sectionClipNormal = new Vector3();
+const sectionClipQuaternion = new Quaternion();
+
+function updateSectionClipPlane(sectionView) {
+  const cutX = sectionView.cutPlane.position.x;
+  sectionView.group.updateMatrixWorld(true);
+  sectionClipPoint.set(cutX, 0, 0);
+  sectionView.group.localToWorld(sectionClipPoint);
+  sectionClipNormal.set(-1, 0, 0).applyQuaternion(sectionView.group.getWorldQuaternion(sectionClipQuaternion)).normalize();
+  sectionView.clipPlane.setFromNormalAndCoplanarPoint(sectionClipNormal, sectionClipPoint);
+}
+
 function getDocumentationViewRects(width, height, isCompact) {
   const gap = isCompact ? 8 : 12;
 
@@ -1219,10 +1348,12 @@ function getDocumentationViewRects(width, height, isCompact) {
     };
   }
 
+  const topInset = isCompact ? 0 : Math.min(64, Math.max(46, height * 0.12));
+  const leftViewHeight = Math.max(1, height - topInset);
   const leftWidth = Math.max(1, Math.floor((width - gap) * 0.5));
   const sectionWidth = Math.max(1, width - leftWidth - gap);
-  const elevationHeight = Math.max(1, Math.floor((height - gap) * 0.68));
-  const planHeight = Math.max(1, height - elevationHeight - gap);
+  const elevationHeight = Math.max(1, Math.floor((leftViewHeight - gap) * 0.72));
+  const planHeight = Math.max(1, leftViewHeight - elevationHeight - gap);
 
   return {
     elevation: { x: 0, y: 0, width: leftWidth, height: elevationHeight },
@@ -1247,6 +1378,9 @@ function updateDocumentationViews(docViews, params, visibleLevels, phase, reduce
   docViews.section.coreMesh.scale.set(0.34, Math.max(0.001, sceneHeight * sequence.section), 0.24);
   docViews.section.cutPlane.position.set(lerp(-0.7, 0.42, sequence.cut), BASE_Y + sceneHeight / 2, -0.05);
   docViews.section.cutPlane.scale.set(1, Math.max(0.001, sceneHeight), 1.45);
+  docViews.section.cutPlaneOutline.position.copy(docViews.section.cutPlane.position);
+  docViews.section.cutPlaneOutline.scale.set(1, Math.max(0.001, sceneHeight), 1.48);
+  updateSectionClipPlane(docViews.section);
 
   setMaterialOpacity(docViews.plan.gridMaterial, 0.34 * sequence.plan);
   setMaterialOpacity(docViews.plan.modelMaterial, 0.9 * sequence.plan);
@@ -1259,7 +1393,8 @@ function updateDocumentationViews(docViews, params, visibleLevels, phase, reduce
   setMaterialOpacity(docViews.section.facadeMaterial, 0.22 * sequence.section);
   setMaterialOpacity(docViews.section.coreMaterial, 0.14 * sequence.section);
   setMaterialOpacity(docViews.section.coreLineMaterial, 0.78 * sequence.section);
-  setMaterialOpacity(docViews.section.cutPlaneMaterial, 0.16 * sequence.cut);
+  setMaterialOpacity(docViews.section.cutPlaneMaterial, 0.045 * sequence.cut);
+  setMaterialOpacity(docViews.section.cutPlaneOutlineMaterial, 0.48 * sequence.cut);
 
   setSpritesOpacity(docViews.plan.labels, Math.max(sequence.plan, sequence.planDims));
   setSpritesOpacity(docViews.elevation.labels, Math.max(sequence.elevation, sequence.elevationDims));
@@ -1276,7 +1411,7 @@ function renderDocumentationViews(renderer, docViews, viewportSize, isCompact) {
   renderer.setScissorTest(true);
 
   updateDocumentationCameras(docViews.plan, rects.plan.width, rects.plan.height, 4.55, 3.1, 1.08);
-  updateDocumentationCameras(docViews.elevation, rects.elevation.width, rects.elevation.height, 5.2, 5.25, 1.1);
+  updateDocumentationCameras(docViews.elevation, rects.elevation.width, rects.elevation.height, 5.25, 5.34, 1.04);
   docViews.section.camera.aspect = rects.section.width / Math.max(1, rects.section.height);
   docViews.section.camera.updateProjectionMatrix();
 
@@ -1306,37 +1441,47 @@ function approach(current, target, amount) {
   return current + (target - current) * amount;
 }
 
+const materialColorTarget = new Color();
+
+function approachMaterialOpacity(material, target, reducedMotion, amount = 0.12) {
+  material.opacity = reducedMotion ? target : approach(material.opacity, target, amount);
+}
+
+function approachMaterialColor(material, target, reducedMotion, amount = 0.08) {
+  if (typeof target === "number") {
+    materialColorTarget.setHex(target);
+  } else {
+    materialColorTarget.copy(target);
+  }
+
+  if (reducedMotion) {
+    material.color.copy(materialColorTarget);
+    return;
+  }
+
+  material.color.lerp(materialColorTarget, amount);
+}
+
 function applyView(rootGroup, camera, isCompact, isAnalysis, isBim, reducedMotion) {
+  const designView = {
+    rotationX: -0.08,
+    rotationY: 0.34,
+    x: 0,
+    y: isCompact ? 0.04 : -0.6,
+    z: isCompact ? 10.65 : 8.3,
+    cameraY: isCompact ? 1.22 : 1.22,
+    fov: 34,
+  };
   const target = isAnalysis
     ? {
-      rotationX: isCompact ? 0.02 : 0,
-      rotationY: isCompact ? 0.44 : 0.42,
-      x: 0,
-      y: isCompact ? 0.34 : -0.26,
-      z: isCompact ? 8.75 : 7.85,
-      cameraY: isCompact ? 0.18 : 0.08,
-      fov: 34,
+      ...designView,
     }
     : isBim
       ? {
-        rotationX: isCompact ? -0.02 : -0.04,
-        rotationY: isCompact ? 0.54 : 0.52,
-        x: 0,
-        y: isCompact ? 0.34 : -0.28,
-        z: isCompact ? 8.9 : 8.05,
-        cameraY: isCompact ? 0.18 : 0.08,
-        fov: 34,
+        ...designView,
       }
-    : {
-      rotationX: -0.08,
-      rotationY: 0.34,
-      x: 0,
-      y: isCompact ? 0.36 : -0.28,
-      z: isCompact ? 8.4 : 7.45,
-      cameraY: isCompact ? 0.16 : 0.06,
-      fov: 34,
-    };
-  const amount = reducedMotion ? 1 : 0.085;
+      : designView;
+  const amount = reducedMotion ? 1 : 0.045;
 
   rootGroup.rotation.x = approach(rootGroup.rotation.x, target.rotationX, amount);
   rootGroup.rotation.y = approach(rootGroup.rotation.y, target.rotationY, amount);
@@ -1358,12 +1503,20 @@ function disposeTree(root) {
   root.traverse?.((object) => disposeObject(object));
 }
 
-export default function ParametricModelAnimation({ activeStage = 0, reducedMotion = false }) {
+function normalizeStageIndex(stage) {
+  return Math.min(Math.max(Number(stage) || 0, 0), STAGE_KEYS.length - 1);
+}
+
+export default function ParametricModelAnimation({ activeStage = 0, isPlaying = true, reducedMotion = false, restartKey = 0, onReady }) {
+  const stageIndex = normalizeStageIndex(activeStage);
   const viewportRef = useRef(null);
   const animationRef = useRef(0);
   const renderRef = useRef(null);
   const updateModelRef = useRef(null);
-  const activeStageRef = useRef(activeStage);
+  const startLoopRef = useRef(null);
+  const stopLoopRef = useRef(null);
+  const activeStageRef = useRef(stageIndex);
+  const isPlayingRef = useRef(isPlaying);
   const stageStartedAtRef = useRef(0);
   const lastHudUpdateRef = useRef(0);
   const layoutRef = useRef({ isCompact: false, viewportSize: { width: 1, height: 1 } });
@@ -1371,12 +1524,27 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
   const [hud, setHud] = useState(() => getDesignHudState(getDesignParams(0.82, true)));
 
   useEffect(() => {
-    activeStageRef.current = activeStage;
+    activeStageRef.current = stageIndex;
     stageStartedAtRef.current = performance.now();
     lastHudUpdateRef.current = 0;
     updateModelRef.current?.();
     renderRef.current?.();
-  }, [activeStage]);
+  }, [stageIndex]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+
+    if (isPlaying) {
+      stageStartedAtRef.current = performance.now();
+      lastHudUpdateRef.current = 0;
+      updateModelRef.current?.();
+      renderRef.current?.();
+      startLoopRef.current?.();
+      return;
+    }
+
+    stopLoopRef.current?.();
+  }, [isPlaying, restartKey]);
 
   useEffect(() => {
     const viewport = viewportRef.current;
@@ -1391,10 +1559,10 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     stageStartedAtRef.current = startedAt;
     rootGroup.rotation.x = -0.08;
     rootGroup.rotation.y = 0.34;
-    rootGroup.position.set(-0.58, -0.28, 0);
+    rootGroup.position.set(0, -0.6, 0);
     scene.add(rootGroup);
     rootGroup.add(towerGroup);
-    camera.position.set(0, 0.06, 7.45);
+    camera.position.set(0, 1.22, 8.3);
 
     let renderer;
 
@@ -1406,6 +1574,7 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     }
 
     renderer.setClearColor(0x000000, 0);
+    renderer.localClippingEnabled = true;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.domElement.className = "model-animation__canvas";
     viewport.appendChild(renderer.domElement);
@@ -1417,14 +1586,15 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     const docElevationCamera = new OrthographicCamera(-2, 2, 2, -2, 0.1, 50);
     const docSectionCamera = new PerspectiveCamera(39, 1, 0.1, 100);
     const docSectionGroup = new Group();
+    const docSectionClipPlane = new Plane(new Vector3(-1, 0, 0), 0);
 
     docPlanCamera.position.set(0, 8, 0);
     docPlanCamera.up.set(0, 0, -1);
     docPlanCamera.lookAt(0, 0, 0);
     docElevationCamera.position.set(0, 0, 8);
     docElevationCamera.lookAt(0, 0, 0);
-    docSectionCamera.position.set(4.1, 1.45, 6.55);
-    docSectionCamera.lookAt(0, 0.18, 0);
+    docSectionCamera.position.set(5.25, 1.9, 8.65);
+    docSectionCamera.lookAt(0, 0.34, 0);
     docSectionGroup.rotation.y = -0.42;
     docSectionScene.add(docSectionGroup);
 
@@ -1442,9 +1612,11 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     const docSectionCoreLineGeometry = createLineGeometry(12);
     const docSectionCoreGeometry = new BoxGeometry(1, 1, 1);
     const docSectionCutPlaneGeometry = new BoxGeometry(0.02, 1, 1);
+    const docSectionCutPlaneOutlineGeometry = createLineGeometry(12);
 
     updateDocumentationFrame(docPlanFrameGeometry, "xz");
     updateDocumentationFrame(docElevationFrameGeometry, "xy");
+    updateSectionCutPlaneOutline(docSectionCutPlaneOutlineGeometry);
 
     const docPlanFrameMaterial = new LineBasicMaterial({ color: 0x7dbfff, transparent: true, opacity: 0.28 });
     const docElevationFrameMaterial = new LineBasicMaterial({ color: 0x7dbfff, transparent: true, opacity: 0.28 });
@@ -1460,6 +1632,11 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     const docSectionCoreMaterial = new MeshBasicMaterial({ color: 0xf6fbff, transparent: true, opacity: 0, depthWrite: false });
     const docSectionCoreLineMaterial = new LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0 });
     const docSectionCutPlaneMaterial = new MeshBasicMaterial({ color: 0x31ff5c, transparent: true, opacity: 0, side: DoubleSide, depthWrite: false });
+    const docSectionCutPlaneOutlineMaterial = new LineBasicMaterial({ color: 0x31ff5c, transparent: true, opacity: 0, depthWrite: false, depthTest: false });
+    [docSectionLineMaterial, docSectionSlabMaterial, docSectionFacadeMaterial, docSectionCoreMaterial, docSectionCoreLineMaterial].forEach((material) => {
+      material.clippingPlanes = [docSectionClipPlane];
+      material.clipIntersection = false;
+    });
 
     const docPlanFrame = new LineSegments(docPlanFrameGeometry, docPlanFrameMaterial);
     const docElevationFrame = new LineSegments(docElevationFrameGeometry, docElevationFrameMaterial);
@@ -1475,10 +1652,11 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     const docSectionCore = new Mesh(docSectionCoreGeometry, docSectionCoreMaterial);
     const docSectionCoreLines = new LineSegments(docSectionCoreLineGeometry, docSectionCoreLineMaterial);
     const docSectionCutPlane = new Mesh(docSectionCutPlaneGeometry, docSectionCutPlaneMaterial);
+    const docSectionCutPlaneOutline = new LineSegments(docSectionCutPlaneOutlineGeometry, docSectionCutPlaneOutlineMaterial);
 
     docPlanScene.add(docPlanFrame, docPlanGrid, docPlanModel, docPlanDims);
     docElevationScene.add(docElevationFrame, docElevationGlazing, docElevationModel, docElevationDims);
-    docSectionGroup.add(docSectionFacade, docSectionSlabs, docSectionCore, docSectionCoreLines, docSectionLines, docSectionCutPlane);
+    docSectionGroup.add(docSectionFacade, docSectionSlabs, docSectionCore, docSectionCoreLines, docSectionLines, docSectionCutPlane, docSectionCutPlaneOutline);
 
     const addDocLabel = (scene, text, position, options = {}) => {
       const label = createTextSprite(text, options);
@@ -1488,18 +1666,23 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
       return label;
     };
 
+    const docLabelParams = getDesignParams(1, true);
+    const docPlanData = getDocumentationPlanData(docLabelParams);
     const docPlanLabels = [
-      addDocLabel(docPlanScene, "A-201 / PLANTA TIPO / ESC 1:100", { x: -1.05, y: 0.05, z: 1.32 }, { color: "#31ff5c", height: 0.11 }),
-      addDocLabel(docPlanScene, "38.40 M", { x: 0, y: 0.05, z: 1.18 }, { color: "#b8ffd2", height: 0.065, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
-      addDocLabel(docPlanScene, "29.20 M", { x: 1.5, y: 0.05, z: 0.02 }, { color: "#b8ffd2", height: 0.065, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
+      addDocLabel(docPlanScene, `A-201 / PLANTA TIPO N${docPlanData.level} / ESC 1:100`, { x: -1.28, y: 0.05, z: 1.32 }, { color: "#31ff5c", height: 0.095 }),
+      addDocLabel(docPlanScene, docPlanData.widthLabel, { x: docPlanData.centerX, y: 0.05, z: docPlanData.dimZ + 0.11 }, { color: "#b8ffd2", height: 0.065, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
+      addDocLabel(docPlanScene, docPlanData.depthLabel, { x: docPlanData.dimX + 0.17, y: 0.05, z: docPlanData.centerZ }, { color: "#b8ffd2", height: 0.065, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
       addDocLabel(docPlanScene, "N", { x: 1.68, y: 0.05, z: -1.28 }, { color: "#eaf5ff", height: 0.08, background: "rgba(2,9,18,0.42)" }),
     ];
+    const docMidLevel = Math.round(MAX_LEVELS / 20) * 10;
+    const docTopY = towerPoint(MAX_LEVELS, 0, docLabelParams).y;
+    const docMidY = towerPoint(docMidLevel, 0, docLabelParams).y;
     const docElevationLabels = [
-      addDocLabel(docElevationScene, "A-301 / ELEVACION FRONTAL", { x: -0.88, y: -1.42, z: 0.06 }, { color: "#31ff5c", height: 0.11 }),
-      addDocLabel(docElevationScene, "ALTURA TOTAL 96 M", { x: -1.72, y: 0.24, z: 0.06 }, { color: "#b8ffd2", height: 0.07, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
-      addDocLabel(docElevationScene, "N00", { x: 1.78, y: BASE_Y, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
-      addDocLabel(docElevationScene, "N14", { x: 1.78, y: (BASE_Y + towerPoint(28, 0, getDesignParams(0.82, true)).y) / 2, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
-      addDocLabel(docElevationScene, "N28", { x: 1.78, y: towerPoint(28, 0, getDesignParams(0.82, true)).y, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
+      addDocLabel(docElevationScene, "A-301 / ELEVACION FRONTAL", { x: -1.02, y: -1.56, z: 0.06 }, { color: "#31ff5c", height: 0.11 }),
+      addDocLabel(docElevationScene, `ALTURA TOTAL ${Math.round(docLabelParams.totalHeight)} M`, { x: -1.86, y: 0.58, z: 0.06 }, { color: "#b8ffd2", height: 0.07, background: "rgba(2,9,18,0.38)", opacity: 0.72 }),
+      addDocLabel(docElevationScene, "N00", { x: 1.9, y: BASE_Y, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
+      addDocLabel(docElevationScene, `N${docMidLevel}`, { x: 1.9, y: docMidY, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
+      addDocLabel(docElevationScene, `N${MAX_LEVELS}`, { x: 1.9, y: docTopY, z: 0.06 }, { height: 0.07, background: "rgba(2,9,18,0.42)" }),
     ];
     const docSectionLabels = [
       addDocLabel(docSectionScene, "A-401 / CORTE 3D", { x: -1.3, y: -1.38, z: 0.3 }, { color: "#31ff5c", height: 0.12 }),
@@ -1545,8 +1728,11 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
         coreMaterial: docSectionCoreMaterial,
         coreLineMaterial: docSectionCoreLineMaterial,
         cutPlaneMaterial: docSectionCutPlaneMaterial,
+        cutPlaneOutlineMaterial: docSectionCutPlaneOutlineMaterial,
+        clipPlane: docSectionClipPlane,
         coreMesh: docSectionCore,
         cutPlane: docSectionCutPlane,
+        cutPlaneOutline: docSectionCutPlaneOutline,
         labels: docSectionLabels,
       },
     };
@@ -1577,9 +1763,9 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
     const footprintMaterial = new LineBasicMaterial({ color: 0x31ff5c, transparent: true, opacity: 0.88 });
     const floorMaterial = new LineBasicMaterial({ color: 0x8ed0ff, transparent: true, opacity: 0.68 });
     const ribMaterial = new LineBasicMaterial({ color: 0x35a8ff, transparent: true, opacity: 0.76 });
-    const guideMaterial = new LineBasicMaterial({ color: 0x31ff5c, transparent: true, opacity: 0.24 });
-    const coreMaterial = new MeshBasicMaterial({ color: 0x77c4ff, transparent: true, opacity: 0.18, depthWrite: false });
-    const coreLineMaterial = new LineBasicMaterial({ color: 0xb8e4ff, transparent: true, opacity: 0.78 });
+    const guideMaterial = new LineBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0.32 });
+    const coreMaterial = new MeshBasicMaterial({ color: 0x77c4ff, transparent: true, opacity: 0.08, depthWrite: false });
+    const coreLineMaterial = new LineBasicMaterial({ color: 0xb8e4ff, transparent: true, opacity: 0.36 });
     const sunPathMaterial = new LineBasicMaterial({ color: 0xff5a3d, transparent: true, opacity: 0 });
     const sunRayMaterial = new LineBasicMaterial({ color: 0xffc857, transparent: true, opacity: 0 });
     const sunMaterial = new MeshBasicMaterial({ color: 0xffe164, transparent: true, opacity: 0 });
@@ -1624,59 +1810,82 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
       const isDocumentation = stage === 3;
       const elapsed = reducedMotion ? 0 : Math.max(0, performance.now() - stageStartedAtRef.current);
       const duration = isAnalysis ? ANALYSIS_LOOP_DURATION : isBim ? BIM_LOOP_DURATION : isDocumentation ? DOCUMENTATION_LOOP_DURATION : DESIGN_LOOP_DURATION;
-      const phase = reducedMotion ? 0.72 : (elapsed % duration) / duration;
-      const params = isAnalysis || isBim || isDocumentation ? getDesignParams(0.82, true) : getDesignParams(phase, reducedMotion);
-      const sequence = isAnalysis || isBim || isDocumentation ? getDesignSequence(0.82, true) : getDesignSequence(phase, reducedMotion);
-      const bimSequence = getBimSequence(phase, reducedMotion);
+      const phase = reducedMotion ? 0.72 : isDocumentation ? (elapsed % duration) / duration : clamp(elapsed / duration);
+      const mergedProgress = isDocumentation ? 0 : stage + phase;
+      const designPhase = isDocumentation ? 1 : stage === 0 ? phase : 1;
+      const analysisPhase = isDocumentation ? phase : clamp((mergedProgress - 0.94) / 1.06);
+      const bimPhase = isDocumentation ? phase : clamp((mergedProgress - 1.94) / 1.06);
+      const analysisBlend = isDocumentation
+        ? 0
+        : smoothstep(0.94, 1.04, mergedProgress) * (1 - smoothstep(1.94, 2.04, mergedProgress));
+      const bimBlend = isDocumentation ? 0 : smoothstep(1.94, 2.04, mergedProgress);
+      const mergedModelBlend = Math.max(analysisBlend, bimBlend);
+      const params = isDocumentation ? getDesignParams(0.82, true) : getDesignParams(designPhase, reducedMotion);
+      const sequence = isDocumentation ? getDesignSequence(0.82, true) : getDesignSequence(designPhase, reducedMotion);
+      const bimSequence = getBimSequence(bimPhase, reducedMotion);
       const visibleLevels = Math.max(1, Math.round(params.levels));
       const sceneHeight = MAX_SCENE_HEIGHT * (params.totalHeight / MAX_TOTAL_HEIGHT);
-      const analysis = getAnalysisState(phase, reducedMotion);
+      const analysis = getAnalysisState(analysisPhase, reducedMotion);
 
       if (isDocumentation) {
         updateDocumentationViews(docViews, params, visibleLevels, phase, reducedMotion);
       }
 
       applyView(rootGroup, camera, layoutRef.current.isCompact, isAnalysis, isBim, reducedMotion);
-      updateFootprint(footprintGeometry, params, isAnalysis || isBim ? 1 : sequence.footprint);
-      updateCoreLines(coreLineGeometry, params, isAnalysis || isBim ? 1 : sequence.core);
+      const footprintProgress = lerp(sequence.footprint, 1, mergedModelBlend);
+      const coreProgress = lerp(sequence.core, 1, mergedModelBlend);
+      const ribProgress = lerp(sequence.ribs, 1, mergedModelBlend);
+      const guideProgress = lerp(lerp(sequence.guides, 0.72, analysisBlend), 0.86, bimBlend);
+      updateFootprint(footprintGeometry, params, footprintProgress);
+      updateCoreLines(coreLineGeometry, params, coreProgress);
       updateFloorBands(floorGeometry, params, visibleLevels);
-      updateRibs(ribGeometry, params, visibleLevels, isAnalysis || isBim ? 1 : sequence.ribs);
-      updateGuides(guideGeometry, params, visibleLevels, isAnalysis ? 0.72 : isBim ? 0.86 : sequence.guides);
-      updateBimFloorSlabs(bimSlabGeometry, params, visibleLevels, isBim ? bimSequence.slabs : 0);
-      updateBimGlazing(bimGlazingGeometry, params, visibleLevels, isBim ? bimSequence.glazing : 0);
-      updateBimGlazingLines(bimGlazingLineGeometry, params, visibleLevels, isBim ? bimSequence.glazing : 0);
-      updateBimStructure(bimStructureGeometry, params, visibleLevels, isBim ? bimSequence.structure : 0);
+      updateRibs(ribGeometry, params, visibleLevels, ribProgress);
+      updateGuides(guideGeometry, params, visibleLevels, guideProgress);
+      updateBimFloorSlabs(bimSlabGeometry, params, visibleLevels, bimBlend * bimSequence.slabs);
+      updateBimGlazing(bimGlazingGeometry, params, visibleLevels, bimBlend * bimSequence.glazing);
+      updateBimGlazingLines(bimGlazingLineGeometry, params, visibleLevels, bimBlend * bimSequence.glazing);
+      updateBimStructure(bimStructureGeometry, params, visibleLevels, bimBlend * bimSequence.structure);
+      const designFacadeColor = new Color(0x1f86d9);
+      const bimFacadeBase = new Color(0x061a2e);
+      const bimFacadeAccent = new Color(0x1b6a86);
       updateFacadeSurface(
         facadeGeometry,
         params,
         visibleLevels,
-        isAnalysis
-          ? (level, segment) => heatColor(getPanelRadiation(level, segment, params, analysis) / 1050)
-          : isBim
-            ? (level, segment) => mixColor(new Color(0x061a2e), new Color(0x1b6a86), 0.08 + ((level + segment) % 5) * 0.04)
-          : () => new Color(0x1f86d9),
+        (level, segment) => {
+          const analysisColor = heatColor(getPanelRadiation(level, segment, params, analysis) / 1050);
+          const bimColor = mixColor(bimFacadeBase, bimFacadeAccent, 0.08 + ((level + segment) % 5) * 0.04);
+          return mixColor(mixColor(designFacadeColor, analysisColor, analysisBlend), bimColor, bimBlend);
+        },
       );
 
-      coreMesh.position.set(0, BASE_Y + (sceneHeight * (isAnalysis || isBim ? 1 : sequence.core)) / 2, 0);
-      coreMesh.scale.set(isBim ? 0.42 : 0.34, Math.max(0.001, sceneHeight * (isAnalysis || isBim ? 1 : sequence.core)), isBim ? 0.32 : 0.24);
+      coreMesh.position.set(0, BASE_Y + (sceneHeight * coreProgress) / 2, 0);
+      coreMesh.scale.set(lerp(0.34, 0.42, bimBlend), Math.max(0.001, sceneHeight * coreProgress), lerp(0.24, 0.32, bimBlend));
       towerGroup.rotation.y = 0.04 + (params.torsion * Math.PI) / 180 / 4;
 
-      facadeMaterial.opacity = isDocumentation ? 0 : (isAnalysis ? 0.44 * analysis.radiation : isBim ? 0.035 * bimSequence.glazing : 0.04 + 0.14 * sequence.plates * sequence.fade);
-      bimSlabMaterial.opacity = isBim ? 0.5 * bimSequence.slabs : 0;
-      bimGlazingMaterial.opacity = isBim ? 0.88 * bimSequence.glazing : 0;
-      bimGlazingLineMaterial.opacity = isBim ? 0.6 * bimSequence.glazing : 0;
-      bimStructureMaterial.opacity = isBim ? 0.88 * bimSequence.structure : 0;
-      footprintMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.82 : isBim ? 0.72 : 0.88 * sequence.footprint * sequence.fade;
-      floorMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.62 : isBim ? 0.42 : 0.24 + 0.52 * sequence.plates * sequence.fade;
-      ribMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.78 : isBim ? 0.28 : 0.2 + 0.62 * sequence.ribs * sequence.fade;
-      guideMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.16 : isBim ? 0.12 + 0.2 * bimSequence.coordination : 0.28 * sequence.guides * sequence.fade;
-      coreMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.14 : isBim ? 0.16 : 0.18 * sequence.core * sequence.fade;
-      coreLineMaterial.opacity = isDocumentation ? 0 : isAnalysis ? 0.76 : isBim ? 0.58 : 0.82 * sequence.core * sequence.fade;
-      floorMaterial.color.setHex(isBim ? 0x36c7ff : 0x8ed0ff);
-      ribMaterial.color.setHex(isBim ? 0x21ff68 : 0x35a8ff);
-      guideMaterial.color.setHex(isBim ? 0xff9f1c : 0x31ff5c);
-      coreMaterial.color.setHex(isBim ? 0xf6fbff : 0x77c4ff);
-      coreLineMaterial.color.setHex(isBim ? 0xffffff : 0xb8e4ff);
+      const facadeOpacity = lerp(lerp(0.04 + 0.14 * sequence.plates * sequence.fade, 0.44 * analysis.radiation, analysisBlend), 0.035 * bimSequence.glazing, bimBlend);
+      const footprintOpacity = lerp(lerp(0.88 * sequence.footprint * sequence.fade, 0.82, analysisBlend), 0.72, bimBlend);
+      const floorOpacity = lerp(lerp(0.24 + 0.52 * sequence.plates * sequence.fade, 0.62, analysisBlend), 0.42, bimBlend);
+      const ribOpacity = lerp(lerp(0.2 + 0.62 * sequence.ribs * sequence.fade, 0.78, analysisBlend), 0.28, bimBlend);
+      const guideOpacity = lerp(lerp(0.42 * sequence.guides * sequence.fade, 0.18, analysisBlend), 0, bimBlend);
+      const coreOpacity = lerp(lerp(0.07 * sequence.core * sequence.fade, 0.08, analysisBlend), 0.1, bimBlend);
+      const coreLineOpacity = lerp(lerp(0.34 * sequence.core * sequence.fade, 0.36, analysisBlend), 0.32, bimBlend);
+      approachMaterialOpacity(facadeMaterial, isDocumentation ? 0 : facadeOpacity, reducedMotion);
+      approachMaterialOpacity(bimSlabMaterial, bimBlend * 0.5 * bimSequence.slabs, reducedMotion);
+      approachMaterialOpacity(bimGlazingMaterial, bimBlend * 0.88 * bimSequence.glazing, reducedMotion);
+      approachMaterialOpacity(bimGlazingLineMaterial, bimBlend * 0.6 * bimSequence.glazing, reducedMotion);
+      approachMaterialOpacity(bimStructureMaterial, bimBlend * 0.88 * bimSequence.structure, reducedMotion);
+      approachMaterialOpacity(footprintMaterial, isDocumentation ? 0 : footprintOpacity, reducedMotion);
+      approachMaterialOpacity(floorMaterial, isDocumentation ? 0 : floorOpacity, reducedMotion);
+      approachMaterialOpacity(ribMaterial, isDocumentation ? 0 : ribOpacity, reducedMotion);
+      approachMaterialOpacity(guideMaterial, isDocumentation ? 0 : guideOpacity, reducedMotion);
+      approachMaterialOpacity(coreMaterial, isDocumentation ? 0 : coreOpacity, reducedMotion);
+      approachMaterialOpacity(coreLineMaterial, isDocumentation ? 0 : coreLineOpacity, reducedMotion);
+      approachMaterialColor(floorMaterial, mixColor(new Color(0x8ed0ff), new Color(0x36c7ff), bimBlend), reducedMotion);
+      approachMaterialColor(ribMaterial, mixColor(new Color(0x35a8ff), new Color(0x21ff68), bimBlend), reducedMotion);
+      approachMaterialColor(guideMaterial, mixColor(new Color(0xffc857), new Color(0xff9f1c), bimBlend), reducedMotion);
+      approachMaterialColor(coreMaterial, mixColor(new Color(0x77c4ff), new Color(0xf6fbff), bimBlend), reducedMotion);
+      approachMaterialColor(coreLineMaterial, mixColor(new Color(0xb8e4ff), new Color(0xffffff), bimBlend), reducedMotion);
 
       updateSunPath(sunPathGeometry, 0);
       updateSunRays(sunRayGeometry, analysis, 0);
@@ -1710,21 +1919,42 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
       updateModel(performance.now() - startedAt);
     };
 
+    let loopActive = false;
+    const stopLoop = () => {
+      if (animationRef.current) {
+        window.cancelAnimationFrame(animationRef.current);
+        animationRef.current = 0;
+      }
+      loopActive = false;
+    };
     const tick = (time) => {
+      if (!isPlayingRef.current || reducedMotion) {
+        stopLoop();
+        return;
+      }
+
       updateModel(time - startedAt);
       animationRef.current = window.requestAnimationFrame(tick);
     };
+    const startLoop = () => {
+      if (loopActive || reducedMotion) return;
+      loopActive = true;
+      animationRef.current = window.requestAnimationFrame(tick);
+    };
+    startLoopRef.current = startLoop;
+    stopLoopRef.current = stopLoop;
 
     const resizeObserver = new ResizeObserver(resize);
     resizeObserver.observe(viewport);
     resize();
+    onReady?.();
 
-    if (!reducedMotion) {
-      animationRef.current = window.requestAnimationFrame(tick);
+    if (isPlayingRef.current) {
+      startLoop();
     }
 
     return () => {
-      window.cancelAnimationFrame(animationRef.current);
+      stopLoop();
       resizeObserver.disconnect();
       [facadeMesh, bimSlabMesh, coreMesh, bimGlazingMesh, bimGlazingLines, bimStructureMesh, footprintLines, floorLines, ribLines, guideLines, coreLines, sunPathLines, sunRayLines, sunMarker].forEach(disposeObject);
       [docPlanScene, docElevationScene, docSectionScene].forEach(disposeTree);
@@ -1732,21 +1962,29 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
       renderer.domElement.remove();
       renderRef.current = null;
       updateModelRef.current = null;
+      startLoopRef.current = null;
+      stopLoopRef.current = null;
     };
-  }, [reducedMotion]);
+  }, [onReady, reducedMotion]);
 
-  const isAnalysis = activeStage === 1;
-  const isBim = activeStage === 2;
-  const isDocumentation = activeStage === 3;
+  const isAnalysis = stageIndex === 1;
+  const isBim = stageIndex === 2;
+  const isDocumentation = stageIndex === 3;
+  const readoutTitle = isAnalysis
+    ? "ANÁLISIS"
+    : isBim
+      ? "COORDINACIÓN BIM"
+      : isDocumentation
+        ? "DOCUMENTACIÓN"
+        : "MODELO PARAMÉTRICO";
 
   return (
-    <div className={`model-animation model-animation--${STAGE_KEYS[activeStage] || "design"}`}>
+    <div className={`model-animation model-animation--${STAGE_KEYS[stageIndex]}`}>
       <div className="model-animation__viewport" ref={viewportRef}>
         {failed ? <div className="model-animation__fallback">WebGL no disponible</div> : null}
       </div>
-      <div className="model-animation__readout" aria-hidden="true">
-        <span>{isAnalysis ? "MODELO VIVO" : isBim ? "MODELO BIM" : isDocumentation ? "DOCUMENTOS" : "MODELO PARAMÉTRICO"}</span>
-        <strong>{isAnalysis ? "ANÁLISIS DESEMPEÑO" : isBim ? "BIM / COORDINACION" : isDocumentation ? "DOCUMENTACIÓN EJECUTIVA" : activeStage === 0 ? "DISEÑO / GEOMETRÍA BASE" : STAGE_LABELS[activeStage]}</strong>
+      <div className="model-animation__readout" key={`readout-${stageIndex}`} aria-hidden="true">
+        <strong>{readoutTitle}</strong>
       </div>
       {!isAnalysis && !isBim && !isDocumentation && (
         <div className="model-animation__sliders" aria-hidden="true">
@@ -1771,10 +2009,11 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
         <div className="model-animation__sliders model-animation__doc-legend" aria-hidden="true">
           <span className="model-animation__panel-title">Set ejecutivo</span>
           {[
-            ["PLANTA", "huella + reticula", "#33a8ff"],
-            ["ELEVACION", "fachada + niveles", "#f6fbff"],
-            ["COTAS", "dimensiones", "#31ff5c"],
-            ["NIVELES", "datums", "#86c6ff"],
+            ["PLANTA", "huella + retícula", "#33a8ff"],
+            ["ELEVACIÓN", "fachada general", "#f6fbff"],
+            ["DETALLES", "encuentros", "#31ff5c"],
+            ["CORTES", "secciones", "#86c6ff"],
+            ["PLANOS DE TALLER", "fabricación", "#ff9f1c"],
           ].map(([label, text, color]) => (
             <span className="model-animation__bim-layer" key={label} style={{ "--layer-color": color }}>
               <i />
@@ -1791,9 +2030,9 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
           <span className="model-animation__panel-title">Capas BIM</span>
           {[
             ["LOSAS", "placas extruidas", "#145dff"],
-            ["ESTRUCTURA", "core + ejes", "#21ff68"],
-            ["VIDRIO", "glazing exterior", "#ff6a2f"],
-            ["COORD.", "guias de cruce", "#ff9f1c"],
+            ["DISCIPLINAS", "modelos federados", "#21ff68"],
+            ["VIDRIO", "glazing exterior", "#c98f5a"],
+            ["COORD.", "guías de cruce", "#ff9f1c"],
           ].map(([label, text, color]) => (
             <span className="model-animation__bim-layer" key={label} style={{ "--layer-color": color }}>
               <i />
@@ -1805,8 +2044,8 @@ export default function ParametricModelAnimation({ activeStage = 0, reducedMotio
           ))}
         </div>
       )}
-      <div className="model-animation__metrics" aria-hidden="true">
-        <span className="model-animation__panel-title">{isAnalysis ? "Desempeño" : isBim ? "Coordinacion" : isDocumentation ? "Documentación" : "Métricas"}</span>
+      <div className="model-animation__metrics" key={`metrics-${stageIndex}`} aria-hidden="true">
+        <span className="model-animation__panel-title">{isAnalysis ? "Desempeño" : isBim ? "Coordinación" : isDocumentation ? "Documentación" : "Métricas"}</span>
         {hud.metrics.map(([label, value]) => (
           <span className="model-animation__metric" key={label}>
             <span>{label}</span>

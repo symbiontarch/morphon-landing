@@ -81,7 +81,7 @@ const flagshipStages = [
   { key: "documentation", title: "Documentación", text: "Ejecutiva" },
 ];
 
-const flagshipStageDurations = [8000, 8000, 8000, 8000];
+const flagshipStageDurations = [3000, 3000, 3000, 3000];
 
 function SectionTransition() {
   return (
@@ -1233,7 +1233,11 @@ function FlagshipOfferSection() {
               <span>Planeación</span>
               <span>Digital</span>
             </h2>
-            <p className="flagship-offer__subtitle">Del diseño al entregable técnico desde un solo modelo.</p>
+            <p className="flagship-offer__subtitle">Del diseño al proyecto ejecutivo desde un solo modelo.</p>
+            <p className="flagship-offer__text">
+              Desarrollamos modelos paramétricos BIM que conectan diseño, ingeniería, análisis,
+              cuantificación, documentación ejecutiva, planos de taller y coordinación técnica.
+            </p>
           </div>
           <div className="flagship-offer__visual" aria-label="Modelo técnico animado de Planeación Digital">
             <Suspense fallback={<div className="model-animation model-animation--loading">Modelo vivo</div>}>
@@ -1246,24 +1250,10 @@ function FlagshipOfferSection() {
               />
             </Suspense>
           </div>
-          <p className="flagship-offer__text">
-            Desarrollamos modelos paramétricos BIM que conectan diseño, ingeniería, análisis,
-            cuantificación, documentación ejecutiva, planos de taller y coordinación técnica.
-          </p>
         </div>
         <PipelineStepper stages={flagshipStages} activeIndex={activeStageIndex} onSelect={setActiveStage} />
       </div>
     </section>
-  );
-}
-
-function ServiceMark() {
-  return (
-    <span className="service-card__mark" aria-hidden="true">
-      <span />
-      <span />
-      <span />
-    </span>
   );
 }
 
@@ -1275,7 +1265,6 @@ function ServiceCard({ service }) {
         <span className="service-card__arrow" aria-hidden="true" />
       </div>
       <div className="service-card__body">
-        <ServiceMark />
         <h3>
           {(service.titleLines || [service.title]).map((line) => (
             <span key={line}>{line}</span>
@@ -1283,10 +1272,13 @@ function ServiceCard({ service }) {
         </h3>
         <p>{service.subtitle}</p>
       </div>
-      <div className="service-card__tags" aria-label={`Entregables de ${service.title}`}>
-        {service.tags.map((tag) => (
-          <span key={tag}>{tag}</span>
-        ))}
+      <div className="service-card__deliverables" aria-label={`Entregables de ${service.title}`}>
+        <span className="service-card__deliverables-label">Entregables</span>
+        <div className="service-card__tags">
+          {service.tags.map((tag) => (
+            <span key={tag}>{tag}</span>
+          ))}
+        </div>
       </div>
     </article>
   );
@@ -1299,11 +1291,16 @@ function ServicesSection() {
       <HeroNoiseCanvas />
       <div className="services-section__inner reveal scene-content">
         <div className="services-section__intro">
-          <h3 className="section-label">03 / Servicios</h3>
-          <h2>Servicios específicos para etapas críticas del proyecto.</h2>
+          <div className="services-section__heading">
+            <h3 className="section-label">03 / Servicios</h3>
+            <h2>
+              <span>Servicios específicos para</span>
+              <span>etapas críticas del proyecto.</span>
+            </h2>
+          </div>
           <p>
-            Podemos desarrollar soluciones puntuales para coordinar, automatizar, documentar o
-            capacitar equipos AEC.
+            Desarrollamos soluciones puntuales para coordinar, automatizar, documentar o
+            capacitar equipos AEC sin rediseñar todo el flujo de trabajo.
           </p>
         </div>
         <div className="services-grid">
@@ -1318,17 +1315,45 @@ function ServicesSection() {
 
 function Contact() {
   const [sent, setSent] = useState(false);
+  const reviewItems = [
+    "Geometría compleja",
+    "Coordinación BIM y documentación",
+    "Automatización de flujos",
+    "Configuradores y herramientas digitales",
+    "Capacitación de equipos",
+    "Scripts",
+  ];
+  const projectTypes = [
+    "Planeación Digital",
+    "BIM + Documentación",
+    "Productos Digitales AEC",
+    "Automatización AEC",
+    "Formación de Equipos AEC",
+    "No estoy seguro todavía",
+  ];
 
     return (
       <section className="section contact scene-section" id="contacto">
         <SectionTransition />
         <div className="contact__copy reveal scene-content">
-        <h3 className="section-label">04 / Contacto</h3>
-        <h2>TRAE UN PROYECTO COMPLEJO. MORPHON PUEDE CONVERTIRLO EN SISTEMA.</h2>
-        <p>
-          Fachada, estructura ligera, configurador, flujo BIM o paquete de fabricación: empecemos
-          con el problema técnico que necesitas controlar.
-        </p>
+          <h3 className="section-label">04 / Contacto</h3>
+          <h2>
+            <span>Hablemos de</span>
+            <span>tu proyecto.</span>
+          </h2>
+          <p>
+            Cuéntanos el reto que estás enfrentando. Analizamos el caso y te ayudamos a definir si
+            necesitas un modelo paramétrico, una automatización, documentación BIM, una herramienta
+            digital o capacitación para tu equipo.
+          </p>
+          <div className="contact-review-panel" aria-label="Retos frecuentes">
+            <span className="contact-review-panel__label">Retos frecuentes</span>
+            <ul>
+              {reviewItems.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
       </div>
       <form
         className="contact-form reveal scene-content"
@@ -1337,6 +1362,9 @@ function Contact() {
           setSent(true);
         }}
       >
+        <div className="contact-form__head">
+          <span>Diagnóstico inicial / Proyecto AEC</span>
+        </div>
         <label>
           Nombre
           <input name="name" type="text" placeholder="Tu nombre" required />
@@ -1346,13 +1374,22 @@ function Contact() {
           <input name="email" type="email" placeholder="correo@empresa.com" required />
         </label>
         <label>
-          Proyecto
-          <textarea name="project" placeholder="Describe el reto de geometría, BIM, análisis o fabricación." rows="5" required />
+          Servicio de interés
+          <select name="projectType" defaultValue="" required>
+            <option value="" disabled>Selecciona una opción</option>
+            {projectTypes.map((type) => (
+              <option value={type} key={type}>{type}</option>
+            ))}
+          </select>
+        </label>
+        <label>
+          Diagnóstico
+          <textarea name="project" placeholder="Cuéntanos brevemente qué necesitas resolver..." rows="5" required />
         </label>
         <button className="button button--blue" type="submit">
-          Enviar solicitud
+          Iniciar diagnóstico
         </button>
-        {sent && <p className="form-note">Solicitud preparada. Conecta un endpoint de email para envío real.</p>}
+        {sent && <p className="form-note">Revisión solicitada. Revisaremos el caso y prepararemos una primera lectura del proyecto.</p>}
       </form>
     </section>
   );
@@ -1374,7 +1411,7 @@ function App() {
       </main>
       <footer className="footer">
         <span>MORPHON</span>
-        <span>© 2026 - Parametric design-to-build systems for AEC.</span>
+        <span>© 2026 — Parametric design-to-build systems for AEC.</span>
       </footer>
     </>
   );

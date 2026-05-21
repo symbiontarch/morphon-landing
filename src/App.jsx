@@ -2,6 +2,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import Lenis from "lenis";
 import { Fragment, lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import BrandSystemPage from "./BrandSystem.jsx";
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -1395,7 +1396,7 @@ function Contact() {
   );
 }
 
-function App() {
+function LandingPage() {
   usePageMotion();
 
   return (
@@ -1415,6 +1416,15 @@ function App() {
       </footer>
     </>
   );
+}
+
+function App() {
+  const [isBrandSystem] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("view") === "brand-system" || window.location.hash === "#brand-system";
+  });
+
+  return isBrandSystem ? <BrandSystemPage /> : <LandingPage />;
 }
 
 export default App;

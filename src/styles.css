@@ -13,6 +13,7 @@
   --font-mono: "JetBrains Mono", "JetBrains Mono Fallback", monospace;
   --font-editorial: "Roboto", "Roboto Fallback", sans-serif;
   --font-sans: "Inter", "Inter Fallback", sans-serif;
+  --anchor-offset: 104px;
   color: var(--ink);
   background: var(--bg);
   font-family: var(--font-mono);
@@ -28,6 +29,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: var(--anchor-offset);
   background: var(--bg);
 }
 
@@ -272,6 +274,14 @@ textarea {
   min-height: calc(100dvh - 148px);
   padding-top: clamp(72px, 12vh, 112px);
   text-align: center;
+}
+
+.scene-section {
+  scroll-margin-top: var(--anchor-offset);
+}
+
+.hero.scene-section {
+  scroll-margin-top: 0;
 }
 
 .hero-kicker {
@@ -4877,6 +4887,10 @@ textarea {
 }
 
 @media (max-width: 980px) {
+  :root {
+    --anchor-offset: 92px;
+  }
+
   .site-header {
     grid-template-columns: 1fr auto;
     inset: 30px 0 auto;
@@ -4961,13 +4975,26 @@ textarea {
 }
 
 @media (max-width: 640px) {
+  :root {
+    --anchor-offset: 76px;
+  }
+
   .header-cta {
     display: none;
   }
 
   .site-header {
-    inset: 24px 0 auto;
-    padding: 0 24px;
+    inset: max(10px, env(safe-area-inset-top)) 0 auto;
+    min-height: 40px;
+    padding: 0 18px;
+    background:
+      linear-gradient(90deg, rgba(2, 9, 18, 0.72), rgba(2, 9, 18, 0.44) 56%, transparent);
+    backdrop-filter: blur(12px);
+  }
+
+  .wordmark {
+    font-size: 19px;
+    line-height: 22px;
   }
 
   .hero {
@@ -5089,15 +5116,15 @@ textarea {
   }
 
   .flagship-offer {
-    padding: 70px 18px 44px;
+    padding: max(82px, calc(env(safe-area-inset-top) + 78px)) 16px 44px;
   }
 
   .flagship-offer__frame {
-    padding: 18px;
+    padding: 16px;
   }
 
   .flagship-offer__layout {
-    gap: 16px;
+    gap: 14px;
   }
 
   .flagship-offer .section-label {
@@ -5105,26 +5132,28 @@ textarea {
   }
 
   .flagship-offer h2.flagship-offer__title {
-    font-size: clamp(30px, 8.9vw, 36px);
+    font-size: clamp(28px, 8.2vw, 34px);
     line-height: 0.98;
   }
 
   .flagship-offer__subtitle {
-    margin-top: 16px;
-    font-size: 14px;
-    line-height: 20px;
+    max-width: 31ch;
+    margin-top: 14px;
+    font-size: 13.5px;
+    line-height: 19px;
   }
 
   .flagship-offer__text {
-    font-size: 12px;
-    line-height: 19px;
+    margin-top: 13px;
+    font-size: 11.8px;
+    line-height: 18px;
   }
 
   .flagship-offer__visual,
   .model-animation,
   .model-animation--loading,
   .model-animation__fallback {
-    min-height: 440px;
+    min-height: clamp(430px, 62svh, 520px);
   }
 
   .model-animation {
@@ -5132,7 +5161,7 @@ textarea {
   }
 
   .model-animation--documentation {
-    min-height: 560px;
+    min-height: clamp(540px, 72svh, 620px);
   }
 
   .model-animation__readout {

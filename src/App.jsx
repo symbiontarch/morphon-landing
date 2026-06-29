@@ -11,7 +11,6 @@ const ParametricModelAnimation = lazy(() => import("./ParametricModelAnimation.j
 
 const navItems = [
   ["INICIO", "#top"],
-  ["DIAGNÓSTICO", "#diagnostico"],
   ["SISTEMA", "#sistema"],
   ["SERVICIOS", "#oferta-insignia"],
   ["CONTACTO", "#contacto"],
@@ -42,30 +41,36 @@ const heroAECOWords = ["Arquitectura", "Ingeniería", "Construcción"];
 const pillars = [
   {
     index: "01",
-    title: "BIM + Documentación",
-    titleLines: ["BIM +", "Documentación"],
-    subtitle: "Modelos inteligentes para coordinar, cuantificar y construir.",
-    description:
-      "Desarrollamos modelos BIM, flujos Revit/Rhino, cuantificaciones, documentación ejecutiva, planos de taller y entregables técnicos conectados a la lógica del proyecto.",
-    tags: ["Modelos BIM", "Docs ejecutivos", "Cantidades", "Planos de taller"],
+    title: "Geometría Compleja",
+    titleLines: ["Geometría", "Compleja"],
+    subtitle:
+      "Llevamos tu proyecto de geometría compleja del diseño a la fabricación en un solo modelo. Racionalizamos, analizamos y hacemos construibles las geometrías más complejas.",
+    tags: [
+      "Modelo paramétrico en Grasshopper",
+      "Análisis",
+      "Modelo 3D",
+      "Archivos de fabricación",
+      "Proyecto ejecutivo",
+      "Planos de taller",
+    ],
   },
   {
     index: "02",
-    title: "Productos Digitales AEC",
-    titleLines: ["Productos Digitales", "AEC"],
-    subtitle: "Herramientas para vender, configurar y automatizar decisiones.",
-    description:
-      "Creamos configuradores 3D, cotizadores automatizados, dashboards técnicos e interfaces web para convertir procesos internos en herramientas digitales reutilizables.",
-    tags: ["Configuradores 3D", "Cotización", "Dashboards", "Web"],
+    title: "Software a medida",
+    titleLines: ["Software", "a medida"],
+    audience: "Para despachos y equipos AEC",
+    subtitle:
+      "Diseñamos y desarrollamos software especializado para la industria AECO. Personalizamos las aplicaciones de acuerdo a los flujos de trabajo de tu empresa.",
+    tags: ["Aplicaciones 3D Web End to End", "Plugins", "Automatización", "Pipelines BIM"],
   },
   {
     index: "03",
-    title: "Automatización AEC",
-    titleLines: ["Automatización", "AEC"],
-    subtitle: "Menos tareas repetitivas. Más entregables controlados.",
-    description:
-      "Desarrollamos scripts, conectores, plugins y flujos de automatización para reducir trabajo manual, conectar plataformas y acelerar entregables.",
-    tags: ["Scripts", "Conectores", "Plugins", "Flujos internos"],
+    title: "Configuradores Web 3D de producto",
+    titleLines: ["Configuradores Web", "3D de producto"],
+    audience: "Para fabricantes / empresas de producto",
+    subtitle:
+      "Convertimos tu producto a medida en una herramienta paramétrica que lo diseña, lo cuantifica y lo cotiza al instante.",
+    tags: ["Configurador 3D", "Cotización", "Despiece", "Desarrollo Fullstack"],
   },
   {
     index: "04",
@@ -627,22 +632,34 @@ function HeroHeadline() {
   );
 }
 
-function RotatingDiscipline({ words, className = "", holdMs = 2500 }) {
-  const [wordIndex, setWordIndex] = useState(0);
+function RotatingDiscipline({ words, className = "", holdMs = 2500, controlledIndex = null, onCycleComplete }) {
+  const isControlled = controlledIndex !== null;
+  const [wordIndex, setWordIndex] = useState(isControlled ? controlledIndex : 0);
   const [characterCount, setCharacterCount] = useState(0);
   const [phase, setPhase] = useState("typing");
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) {
-      setCharacterCount(words[0].length);
+      setCharacterCount(words[wordIndex].length);
       return undefined;
     }
 
     const currentWord = words[wordIndex];
-    let delay = 72;
+    const fullyTyped = phase === "typing" && characterCount >= currentWord.length;
 
-    if (phase === "typing" && characterCount >= currentWord.length) {
+    // Controlled mode: hold the current word until the parent advances the index
+    // (driven by the other rotator finishing a cycle), then delete and retype.
+    if (fullyTyped && isControlled) {
+      if (controlledIndex === wordIndex) {
+        return undefined;
+      }
+      const switchTimer = setTimeout(() => setPhase("deleting"), 60);
+      return () => clearTimeout(switchTimer);
+    }
+
+    let delay = 72;
+    if (fullyTyped) {
       delay = holdMs;
     } else if (phase === "deleting") {
       delay = 42;
@@ -658,13 +675,17 @@ function RotatingDiscipline({ words, className = "", holdMs = 2500 }) {
       } else if (characterCount > 0) {
         setCharacterCount((count) => count - 1);
       } else {
-        setWordIndex((index) => (index + 1) % words.length);
+        const nextIndex = isControlled ? controlledIndex : (wordIndex + 1) % words.length;
+        setWordIndex(nextIndex);
         setPhase("typing");
+        if (!isControlled && nextIndex === 0) {
+          onCycleComplete?.();
+        }
       }
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [characterCount, holdMs, phase, wordIndex, words]);
+  }, [characterCount, holdMs, phase, wordIndex, words, isControlled, controlledIndex, onCycleComplete]);
 
   const visibleWord = words[wordIndex].slice(0, characterCount);
 
@@ -834,7 +855,7 @@ function Header() {
         ))}
       </nav>
       <a className="header-cta" href="#contacto" onClick={(event) => navigateToHash(event, "#contacto")}>
-        Iniciar proyecto
+        Iniciar diagnóstico
       </a>
       <button
         type="button"
@@ -869,7 +890,7 @@ function Header() {
         ))}
       </nav>
       <a className="mobile-nav__cta" href="#contacto" onClick={(event) => navigateToHash(event, "#contacto")}>
-        Iniciar proyecto
+        Iniciar diagnóstico
       </a>
     </div>
     </>
@@ -1051,6 +1072,11 @@ function HeroNoiseCanvas() {
 }
 
 function Hero() {
+  const [disciplineIndex, setDisciplineIndex] = useState(0);
+  const advanceDiscipline = useCallback(() => {
+    setDisciplineIndex((index) => (index + 1) % heroAECOWords.length);
+  }, []);
+
   return (
     <section className="hero scene-section" id="top">
       <div className="hero__frame" aria-hidden="true">
@@ -1067,17 +1093,29 @@ function Hero() {
       <ParticleDome />
       <div className="hero__inner scene-content">
         <p className="hero-kicker">
-          <RotatingDiscipline words={heroSystemWords} className="discipline-word--system" holdMs={4000} />
+          <RotatingDiscipline
+            words={heroSystemWords}
+            className="discipline-word--system"
+            holdMs={4000}
+            onCycleComplete={advanceDiscipline}
+          />
           <span>para</span>
-          <RotatingDiscipline words={heroAECOWords} holdMs={9000} />
+          <RotatingDiscipline words={heroAECOWords} controlledIndex={disciplineIndex} />
         </p>
       </div>
       <div className="hero__footer">
         <span>© 2026 - MORPHON</span>
         <div className="hero__social" aria-label="Enlaces sociales">
-          <a href="#contacto" aria-label="LinkedIn">in</a>
-          <a href="#contacto" aria-label="X">X</a>
-          <a href="#contacto" aria-label="Video">▶</a>
+          <a
+            href="https://www.linkedin.com/company/morphonsystems/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="LinkedIn"
+          >
+            in
+          </a>
+          <a aria-label="X" aria-disabled="true">X</a>
+          <a aria-label="Video" aria-disabled="true">▶</a>
         </div>
       </div>
     </section>
@@ -1335,6 +1373,7 @@ function ServiceCard({ service }) {
             <span key={line}>{line}</span>
           ))}
         </h3>
+        {service.audience && <span className="service-card__audience">{service.audience}</span>}
         <p>{service.subtitle}</p>
       </div>
       <div className="service-card__deliverables" aria-label={`Entregables de ${service.title}`}>
@@ -1344,6 +1383,11 @@ function ServiceCard({ service }) {
             <span key={tag}>{tag}</span>
           ))}
         </div>
+        {service.link && (
+          <a className="service-card__link" href={service.link.href}>
+            {service.link.label} →
+          </a>
+        )}
       </div>
     </article>
   );
@@ -1378,8 +1422,38 @@ function ServicesSection() {
   );
 }
 
+// Web3Forms access key. Register victor@morphon.systems at https://web3forms.com to
+// generate this — emails then go to that address. (This key is meant to be public.)
+const CONTACT_ACCESS_KEY = "26d47603-fd39-41cb-b1a2-3288383ec6ef";
+
 function Contact() {
-  const [sent, setSent] = useState(false);
+  const [status, setStatus] = useState("idle");
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (status === "sending") return;
+    const form = event.currentTarget;
+    setStatus("sending");
+
+    const formData = new FormData(form);
+    formData.append("access_key", CONTACT_ACCESS_KEY);
+    formData.append("subject", "Nuevo diagnóstico — Morphon");
+    formData.append("from_name", "Morphon · Formulario web");
+
+    try {
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: { Accept: "application/json" },
+        body: formData,
+      });
+      const data = await response.json();
+      setStatus(data.success ? "sent" : "error");
+      if (data.success) form.reset();
+    } catch (error) {
+      setStatus("error");
+    }
+  };
+
   const reviewItems = [
     "Geometría compleja",
     "Coordinación BIM y documentación",
@@ -1420,16 +1494,18 @@ function Contact() {
             </ul>
           </div>
       </div>
-      <form
-        className="contact-form reveal scene-content"
-        onSubmit={(event) => {
-          event.preventDefault();
-          setSent(true);
-        }}
-      >
+      <form className="contact-form reveal scene-content" onSubmit={handleSubmit}>
         <div className="contact-form__head">
           <span>Diagnóstico inicial / Proyecto AEC</span>
         </div>
+        <input
+          type="checkbox"
+          name="botcheck"
+          tabIndex={-1}
+          autoComplete="off"
+          aria-hidden="true"
+          style={{ display: "none" }}
+        />
         <label>
           Nombre
           <input name="name" type="text" placeholder="Tu nombre" required />
@@ -1451,10 +1527,15 @@ function Contact() {
           Diagnóstico
           <textarea name="project" placeholder="Cuéntanos brevemente qué necesitas resolver..." rows="5" required />
         </label>
-        <button className="button button--blue" type="submit">
-          Iniciar diagnóstico
+        <button className="button button--blue" type="submit" disabled={status === "sending"}>
+          {status === "sending" ? "Enviando…" : "Iniciar diagnóstico"}
         </button>
-        {sent && <p className="form-note">Revisión solicitada. Revisaremos el caso y prepararemos una primera lectura del proyecto.</p>}
+        {status === "sent" && (
+          <p className="form-note">Revisión solicitada. Revisaremos el caso y prepararemos una primera lectura del proyecto.</p>
+        )}
+        {status === "error" && (
+          <p className="form-note form-note--error">No se pudo enviar el mensaje. Por favor inténtalo de nuevo en un momento.</p>
+        )}
       </form>
     </section>
   );

@@ -4005,13 +4005,42 @@ textarea {
 }
 
 .service-card p {
-  max-width: 24ch;
-  margin: 16px 0 0;
+  max-width: 30ch;
+  margin: 14px 0 0;
   color: rgba(7, 23, 53, 0.82);
   font-family: var(--font-mono);
   font-size: 12px;
   font-weight: 700;
   line-height: 18px;
+}
+
+.service-card__audience {
+  display: block;
+  margin-top: 8px;
+  color: rgba(0, 87, 184, 0.6);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 800;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+}
+
+.service-card__link {
+  justify-self: start;
+  color: var(--blue);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(3, 67, 155, 0.45);
+  padding-bottom: 2px;
+  transition: color 160ms ease, border-color 160ms ease;
+}
+
+.service-card__link:hover {
+  color: #0a57b8;
+  border-color: var(--blue);
 }
 
 .service-card__deliverables {
@@ -4615,6 +4644,15 @@ textarea {
   font-family: var(--font-mono);
   font-size: 13px;
   line-height: 20px;
+}
+
+.form-note--error {
+  color: #e63946;
+}
+
+.button:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .footer {

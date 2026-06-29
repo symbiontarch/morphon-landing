@@ -1437,7 +1437,8 @@ function Contact() {
 
     const formData = new FormData(form);
     formData.append("access_key", CONTACT_ACCESS_KEY);
-    formData.append("subject", "Nuevo diagnóstico — Morphon");
+    const submitterName = (formData.get("name") || "").toString().trim();
+    formData.append("subject", submitterName ? `Nuevo diagnóstico — ${submitterName}` : "Nuevo diagnóstico — Morphon");
     formData.append("from_name", "Morphon · Formulario web");
 
     try {

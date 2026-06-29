@@ -18,7 +18,7 @@ const navItems = [
 ];
 
 const SNAP_SECTION_HASHES = ["#top", "#diagnostico", "#sistema", "#oferta-insignia", "#servicios", "#contacto"];
-const SECTION_SNAP_MIN_WIDTH = 760;
+const SECTION_SNAP_MIN_WIDTH = 0;
 const SECTION_SNAP_IDLE_MS = 160;
 const SECTION_SNAP_THRESHOLD_VH = 0.22;
 const SECTION_SNAP_COOLDOWN_MS = 700;
@@ -35,6 +35,9 @@ const heroCopyLines = [
   "y flujos BIM inteligentes para convertir geometría compleja",
   "en modelos analizables, documentables y construibles.",
 ];
+
+const heroSystemWords = ["Planeación\nDigital", "Configuradores\nWeb 3D", "Software\na medida"];
+const heroAECOWords = ["Arquitectura", "Ingeniería", "Construcción"];
 
 const pillars = [
   {
@@ -256,7 +259,8 @@ function usePageMotion() {
 
       const nearest = getNearestSection();
       const snapThreshold = window.innerHeight * SECTION_SNAP_THRESHOLD_VH;
-      if (!nearest || nearest.distance < 2 || nearest.distance > snapThreshold) return;
+      const lastSnapHash = SNAP_SECTION_HASHES[SNAP_SECTION_HASHES.length - 1];
+      if (!nearest || nearest.hash === lastSnapHash || nearest.distance < 2 || nearest.distance > snapThreshold) return;
 
       snapCooldownUntil = performance.now() + SECTION_SNAP_COOLDOWN_MS;
       scrollToHash(nearest.hash, { source: "snap", historyMode: "replace" });
@@ -623,8 +627,7 @@ function HeroHeadline() {
   );
 }
 
-function RotatingDiscipline() {
-  const words = ["Arquitectura", "Ingeniería", "Construcción"];
+function RotatingDiscipline({ words, className = "", holdMs = 2500 }) {
   const [wordIndex, setWordIndex] = useState(0);
   const [characterCount, setCharacterCount] = useState(0);
   const [phase, setPhase] = useState("typing");
@@ -640,7 +643,7 @@ function RotatingDiscipline() {
     let delay = 72;
 
     if (phase === "typing" && characterCount >= currentWord.length) {
-      delay = 2500;
+      delay = holdMs;
     } else if (phase === "deleting") {
       delay = 42;
     }
@@ -661,12 +664,15 @@ function RotatingDiscipline() {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [characterCount, phase, wordIndex]);
+  }, [characterCount, holdMs, phase, wordIndex, words]);
 
   const visibleWord = words[wordIndex].slice(0, characterCount);
 
   return (
-    <span className="discipline-word" aria-label={words[wordIndex]}>
+    <span
+      className={`discipline-word${className ? ` ${className}` : ""}`}
+      aria-label={words[wordIndex].replace(/\s+/g, " ")}
+    >
       <span className="discipline-word__text">{visibleWord}</span>
       <span className="discipline-cursor" aria-hidden="true" />
     </span>
@@ -680,6 +686,7 @@ function Header() {
   const [isLightHeader, setIsLightHeader] = useState(false);
   const [indicator, setIndicator] = useState({ opacity: 0, x: 0, y: 0, width: 0, height: 0 });
   const [scramble, setScramble] = useState({ href: null, tick: 0 });
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const moveIndicator = (href) => {
     const nav = navRef.current;
@@ -699,6 +706,7 @@ function Header() {
   const navigateToHash = (event, href) => {
     event.preventDefault();
     setActiveHash(href);
+    setIsMenuOpen(false);
 
     window.dispatchEvent(new CustomEvent("morphon:navigate-hash", { detail: { hash: href, immediate: href === "#top", source: "nav" } }));
     requestAnimationFrame(() => moveIndicator(href));
@@ -751,7 +759,28 @@ function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isMenuOpen) return undefined;
+    const html = document.documentElement;
+    const previousOverflow = html.style.overflow;
+    html.style.overflow = "hidden";
+    const handleKey = (event) => {
+      if (event.key === "Escape") setIsMenuOpen(false);
+    };
+    const handleResize = () => {
+      if (window.innerWidth > 980) setIsMenuOpen(false);
+    };
+    window.addEventListener("keydown", handleKey);
+    window.addEventListener("resize", handleResize);
+    return () => {
+      html.style.overflow = previousOverflow;
+      window.removeEventListener("keydown", handleKey);
+      window.removeEventListener("resize", handleResize);
+    };
+  }, [isMenuOpen]);
+
   return (
+    <>
     <header className={`site-header${isLightHeader ? " site-header--light" : ""}`}>
       <a className="wordmark" href="#top" aria-label="MORPHON inicio" onClick={(event) => navigateToHash(event, "#top")}>
         MORPHON
@@ -807,7 +836,43 @@ function Header() {
       <a className="header-cta" href="#contacto" onClick={(event) => navigateToHash(event, "#contacto")}>
         Iniciar proyecto
       </a>
+      <button
+        type="button"
+        className={`nav-toggle${isMenuOpen ? " nav-toggle--open" : ""}`}
+        aria-label={isMenuOpen ? "Cerrar menú" : "Abrir menú"}
+        aria-expanded={isMenuOpen}
+        aria-controls="mobile-nav"
+        onClick={() => setIsMenuOpen((open) => !open)}
+      >
+        <span className="nav-toggle__bar" />
+        <span className="nav-toggle__bar" />
+        <span className="nav-toggle__bar" />
+      </button>
     </header>
+    <div
+      id="mobile-nav"
+      className={`mobile-nav${isMenuOpen ? " mobile-nav--open" : ""}`}
+      aria-hidden={!isMenuOpen}
+    >
+      <span className="mobile-nav__label">Navegación</span>
+      <nav className="mobile-nav__list" aria-label="Navegación móvil">
+        {navItems.map(([label, href], index) => (
+          <a
+            key={href}
+            href={href}
+            className={href === activeHash ? "is-active" : undefined}
+            onClick={(event) => navigateToHash(event, href)}
+          >
+            <span className="mobile-nav__index">{String(index + 1).padStart(2, "0")}</span>
+            <span className="mobile-nav__name">{label}</span>
+          </a>
+        ))}
+      </nav>
+      <a className="mobile-nav__cta" href="#contacto" onClick={(event) => navigateToHash(event, "#contacto")}>
+        Iniciar proyecto
+      </a>
+    </div>
+    </>
   );
 }
 
@@ -1002,11 +1067,10 @@ function Hero() {
       <ParticleDome />
       <div className="hero__inner scene-content">
         <p className="hero-kicker">
-          <span>El futuro de la</span>
-          <RotatingDiscipline />
-          <span>es paramétrico.</span>
+          <RotatingDiscipline words={heroSystemWords} className="discipline-word--system" holdMs={4000} />
+          <span>para</span>
+          <RotatingDiscipline words={heroAECOWords} holdMs={9000} />
         </p>
-        <HeroHeadline />
       </div>
       <div className="hero__footer">
         <span>© 2026 - MORPHON</span>

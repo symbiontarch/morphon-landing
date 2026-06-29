@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #f6f9fc;
   --ink: #222222;
   --blue: #03439b;
@@ -222,6 +222,166 @@ textarea {
   color: var(--white);
 }
 
+/* Mobile navigation: hamburger toggle + full-screen overlay (shown <=980px) */
+.nav-toggle {
+  display: none;
+  position: relative;
+  justify-self: end;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.34);
+  background: rgba(2, 9, 18, 0.32);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.nav-toggle__bar {
+  position: absolute;
+  left: 11px;
+  right: 11px;
+  height: 1.5px;
+  background: currentColor;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1), opacity 180ms ease;
+}
+
+.nav-toggle__bar:nth-child(1) {
+  top: 14px;
+}
+
+.nav-toggle__bar:nth-child(2) {
+  top: 20px;
+}
+
+.nav-toggle__bar:nth-child(3) {
+  top: 26px;
+}
+
+.nav-toggle--open .nav-toggle__bar:nth-child(1) {
+  top: 20px;
+  transform: rotate(45deg);
+}
+
+.nav-toggle--open .nav-toggle__bar:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-toggle--open .nav-toggle__bar:nth-child(3) {
+  top: 20px;
+  transform: rotate(-45deg);
+}
+
+.site-header--light .nav-toggle {
+  border-color: rgba(0, 87, 184, 0.5);
+  background: rgba(255, 255, 255, 0.4);
+  color: var(--blue);
+}
+
+.mobile-nav {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 18;
+  flex-direction: column;
+  justify-content: center;
+  padding: clamp(96px, 16vh, 132px) 24px 40px;
+  color: var(--white);
+  background:
+    linear-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px) 0 0 / 100% 30px,
+    linear-gradient(90deg, rgba(255, 255, 255, 0.045) 1px, transparent 1px) 0 0 / 30px 100%,
+    radial-gradient(circle at 78% 16%, rgba(3, 67, 155, 0.42), transparent 52%),
+    linear-gradient(180deg, #020912 0%, #04122b 100%);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 280ms ease, visibility 0s linear 280ms;
+}
+
+.mobile-nav--open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 280ms ease;
+}
+
+.mobile-nav__label {
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto 16px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: #31ff5c;
+}
+
+.mobile-nav__list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 460px;
+  margin: 0 auto;
+}
+
+.mobile-nav__list a {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 16px;
+  padding: 17px 2px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.84);
+  font-family: var(--font-mono);
+  font-size: clamp(22px, 6.6vw, 27px);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+  transition: color 160ms ease;
+}
+
+.mobile-nav__list a:last-child {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.mobile-nav__list a:hover,
+.mobile-nav__list a.is-active {
+  color: var(--white);
+}
+
+.mobile-nav__index {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(49, 255, 92, 0.6);
+  font-variant-numeric: tabular-nums;
+}
+
+.mobile-nav__list a.is-active .mobile-nav__index {
+  color: #31ff5c;
+}
+
+.mobile-nav__cta {
+  width: 100%;
+  max-width: 460px;
+  margin: 30px auto 0;
+  padding: 17px;
+  border: 1px solid #31ff5c;
+  background: rgba(49, 255, 92, 0.12);
+  color: #31ff5c;
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: center;
+  text-transform: uppercase;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.mobile-nav__cta:hover {
+  background: #31ff5c;
+  color: #020912;
+}
+
 .hero {
   position: relative;
   min-height: 100dvh;
@@ -269,8 +429,7 @@ textarea {
   z-index: 1;
   display: flex;
   flex-direction: column;
-  align-items: start;
-  justify-items: center;
+  align-items: center;
   min-height: calc(100dvh - 148px);
   padding-top: clamp(72px, 12vh, 112px);
   text-align: center;
@@ -301,16 +460,24 @@ textarea {
 
 .discipline-word {
   display: flex;
-  width: 12.8ch;
+  width: var(--discipline-width, 13.4ch);
   align-items: baseline;
-  justify-content: start;
+  justify-content: center;
   margin: 0 auto;
   color: var(--white);
   white-space: nowrap;
 }
 
+.discipline-word--system {
+  --discipline-width: min(100%, 26ch);
+  align-items: flex-end;
+  line-height: 0.98;
+  white-space: pre-line;
+}
+
 .discipline-word__text {
   display: inline-block;
+  white-space: inherit;
 }
 
 .discipline-cursor {
@@ -937,7 +1104,7 @@ textarea {
   gap: 14px;
   min-height: 100dvh;
   align-content: start;
-  justify-items: center;
+  justify-items: start;
   padding-top: clamp(146px, 18vh, 180px);
   background:
     radial-gradient(circle at 42% 52%, rgba(12, 61, 116, 0.95) 0%, rgba(8, 38, 84, 0.38) 23%, transparent 45%),
@@ -962,7 +1129,7 @@ textarea {
 }
 
 .intro h2 {
-  max-width: clamp(360px, 36vw, 460px);
+  max-width: clamp(360px, 50vw, 720px);
   font-size: clamp(19.44px, 2.8512vw, 41.472px);
   color: var(--white);
   text-align: left;
@@ -978,7 +1145,7 @@ textarea {
 }
 
 .intro p {
-  max-width: clamp(360px, 36vw, 460px);
+  max-width: clamp(360px, 40vw, 600px);
   margin: 18px 0 0;
   color: var(--white);
   line-height: 26px;
@@ -3679,7 +3846,6 @@ textarea {
 
 .services-section {
   position: relative;
-  min-height: 100dvh;
   overflow: hidden;
   padding: 112px 52px 76px;
   color: var(--flagship-ink);
@@ -4153,9 +4319,12 @@ textarea {
     font-size: 8px;
   }
 
-  .pipeline-stepper,
   .services-grid {
     grid-template-columns: 1fr;
+  }
+
+  .pipeline-stepper {
+    display: none;
   }
 
   .service-card {
@@ -4216,7 +4385,8 @@ textarea {
 .contact {
   position: relative;
   display: grid;
-  grid-template-columns: minmax(0, 0.92fr) minmax(380px, 0.62fr);
+  grid-template-columns: minmax(380px, 760px) minmax(380px, 600px);
+  justify-content: center;
   gap: clamp(42px, 5.4vw, 76px);
   align-items: center;
   overflow: hidden;
@@ -4902,6 +5072,20 @@ textarea {
     display: none;
   }
 
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .header-cta {
+    display: none;
+  }
+
+  .mobile-nav {
+    display: flex;
+  }
+
   .wordmark {
     margin-left: 0;
   }
@@ -4917,7 +5101,7 @@ textarea {
 
   .section,
   .flagship {
-    padding: 80px 24px;
+    padding: 80px 28px;
   }
 
   .intro,
@@ -4925,6 +5109,10 @@ textarea {
   .flagship__content,
   .contact {
     grid-template-columns: 1fr;
+  }
+
+  .intro {
+    align-content: center;
   }
 
   .solution-copy {
@@ -4946,8 +5134,8 @@ textarea {
   .intro h2 {
     grid-column: auto;
     max-width: none;
-    font-size: 19.44px;
-    line-height: 22.03px;
+    font-size: clamp(21.6px, 3.6vw, 28px);
+    line-height: 1.4;
   }
 
   .intro p {
@@ -5013,6 +5201,11 @@ textarea {
     line-height: 1.12;
   }
 
+  .discipline-word--system {
+    width: 100%;
+    white-space: pre-line;
+  }
+
   .hero-title {
     position: relative;
     top: auto;
@@ -5068,12 +5261,15 @@ textarea {
   .flagship h2,
   .contact h2 {
     font-size: 21.6px;
-    line-height: 24.48px;
+  }
+
+  .intro h2 {
+    line-height: 1.4;
   }
 
   .section,
   .contact {
-    padding: 76px 24px 48px;
+    padding: 76px 28px 48px;
   }
 
   .contact h2 {
@@ -5124,7 +5320,7 @@ textarea {
   }
 
   .flagship-offer__layout {
-    gap: 14px;
+    gap: 22px;
   }
 
   .flagship-offer .section-label {
@@ -5153,7 +5349,7 @@ textarea {
   .model-animation,
   .model-animation--loading,
   .model-animation__fallback {
-    min-height: clamp(430px, 62svh, 520px);
+    min-height: clamp(450px, 61svh, 520px);
   }
 
   .model-animation {
@@ -5161,7 +5357,7 @@ textarea {
   }
 
   .model-animation--documentation {
-    min-height: clamp(540px, 72svh, 620px);
+    min-height: clamp(480px, 63svh, 540px);
   }
 
   .model-animation__readout {
@@ -5178,11 +5374,11 @@ textarea {
   }
 
   .model-animation--analysis .model-animation__viewport {
-    bottom: 204px;
+    bottom: 224px;
   }
 
   .model-animation--bim .model-animation__viewport {
-    bottom: 160px;
+    bottom: 182px;
   }
 
   .model-animation--documentation .model-animation__viewport {
@@ -5301,3 +5497,5 @@ textarea {
     transition-duration: 0.001ms !important;
   }
 }
+
+

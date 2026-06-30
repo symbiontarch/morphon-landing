@@ -564,18 +564,24 @@ export default function ParametricTower() {
     const lineMesh = lineMeshRef.current;
     const coreMesh = coreMeshRef.current;
     const slabMesh = slabMeshRef.current;
-    if (!surfaceMesh || !lineMesh || !coreMesh || !slabMesh) return;
+    if (!surfaceMesh || !lineMesh || !coreMesh || !slabMesh) return undefined;
 
-    const { surfaceGeometry, lineGeometry, coreGeometry, slabGeometry } = createTowerGeometry(params);
-    surfaceMesh.geometry.dispose();
-    lineMesh.geometry.dispose();
-    coreMesh.geometry.dispose();
-    slabMesh.geometry.dispose();
-    surfaceMesh.geometry = surfaceGeometry;
-    lineMesh.geometry = lineGeometry;
-    coreMesh.geometry = coreGeometry;
-    slabMesh.geometry = slabGeometry;
-    renderRef.current?.();
+    // Rebuild once per animation frame so dragging a slider on a touchscreen
+    // coalesces rapid changes instead of blocking the main thread on every event.
+    const frame = requestAnimationFrame(() => {
+      const { surfaceGeometry, lineGeometry, coreGeometry, slabGeometry } = createTowerGeometry(params);
+      surfaceMesh.geometry.dispose();
+      lineMesh.geometry.dispose();
+      coreMesh.geometry.dispose();
+      slabMesh.geometry.dispose();
+      surfaceMesh.geometry = surfaceGeometry;
+      lineMesh.geometry = lineGeometry;
+      coreMesh.geometry = coreGeometry;
+      slabMesh.geometry = slabGeometry;
+      renderRef.current?.();
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, [params]);
 
   return (

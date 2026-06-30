@@ -584,6 +584,21 @@ export default function ParametricTower() {
     return () => cancelAnimationFrame(frame);
   }, [params]);
 
+  // iOS Safari does not reliably drag custom-styled range inputs by touch, so we
+  // drive the value ourselves from the pointer position (mouse keeps the native path).
+  const setSliderFromPointer = (event, control) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const ratio = Math.min(1, Math.max(0, (event.clientX - rect.left) / rect.width));
+    const stepped = Math.round((control.min + ratio * (control.max - control.min)) / control.step) * control.step;
+    const value = Math.min(control.max, Math.max(control.min, stepped));
+    setParams((current) => ({
+      ...current,
+      [control.key]: control.key === "levels" ? Math.round(value) : value,
+    }));
+    setDataPulse((current) => current + 1);
+  };
+
   return (
     <div className="tower-shell" ref={shellRef} aria-label="Sistema paramétrico interactivo">
       <div className="tower-viewport" ref={viewportRef}>
@@ -623,6 +638,21 @@ export default function ParametricTower() {
                         [control.key]: control.key === "levels" ? Math.round(rawValue) : rawValue,
                       }));
                       setDataPulse((current) => current + 1);
+                    }}
+                    onPointerDown={(event) => {
+                      if (event.pointerType === "mouse") return;
+                      try {
+                        event.currentTarget.setPointerCapture(event.pointerId);
+                      } catch (error) {
+                        /* ignore capture failures */
+                      }
+                      setSliderFromPointer(event, control);
+                    }}
+                    onPointerMove={(event) => {
+                      if (event.pointerType === "mouse") return;
+                      if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+                        setSliderFromPointer(event, control);
+                      }
                     }}
                   />
                 </label>

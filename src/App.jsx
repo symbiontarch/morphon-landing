@@ -1092,6 +1092,7 @@ function Hero() {
       <HeroNoiseCanvas />
       <ParticleDome />
       <div className="hero__inner scene-content">
+        <h1 className="sr-only">MORPHON — Arquitectura compleja, hecha construible</h1>
         <p className="hero-kicker">
           <RotatingDiscipline
             words={heroSystemWords}
@@ -1448,8 +1449,15 @@ function Contact() {
         body: formData,
       });
       const data = await response.json();
-      setStatus(data.success ? "sent" : "error");
-      if (data.success) form.reset();
+      if (data.success) {
+        setStatus("sent");
+        window.gtag?.("event", "generate_lead", {
+          form_name: "diagnostico_inicial",
+        });
+        form.reset();
+      } else {
+        setStatus("error");
+      }
     } catch (error) {
       setStatus("error");
     }

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://morphon.systems/sitemap.xml
